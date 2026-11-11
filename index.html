@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Backyard Football Simulator - 5v5 Ironman GM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased">
+
+  <!-- Top Header Navigation -->
+  <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-rose-600 flex items-center justify-center text-xl shadow-md">
+          🏈
+        </div>
+        <div>
+          <h1 class="text-xl font-black tracking-wide text-white font-arcade flex items-center gap-2">
+            BACKYARD FOOTBALL <span class="text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded uppercase font-sans font-bold">5v5 Ironman</span>
+          </h1>
+          <p class="text-xs text-slate-400">Micro-Fantasy GM League • 50yd Field • 10-Kid Squads</p>
+        </div>
+      </div>
+
+      <!-- Quick Status Badges -->
+      <div class="flex items-center gap-3">
+        <div id="header-user-team" class="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700">
+          <span class="text-base" id="header-team-emoji">🔨</span>
+          <span class="font-bold text-sm" id="header-team-name">Cul-de-sac Crushers</span>
+          <span class="text-xs font-mono font-bold bg-rose-500 text-white px-2 py-0.5 rounded-full" id="header-team-record">0-0</span>
+        </div>
+
+        <div class="bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700 text-sm font-semibold text-amber-400" id="header-week">
+          Week 1 / 5
+        </div>
+
+        <button id="btn-reset-season" class="text-xs bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-800/60 px-2.5 py-1.5 rounded-lg transition" title="Start a fresh league">
+          ↺ Reset
+        </button>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="bg-slate-900/95 border-t border-slate-800/60">
+      <div class="max-w-7xl mx-auto px-4 flex space-x-1 overflow-x-auto text-sm font-medium">
+        <button data-tab="owners-box" class="nav-tab px-4 py-2.5 border-b-2 border-rose-500 text-white font-semibold transition flex items-center gap-2">
+          <span>🏟️</span> Owner's Box
+        </button>
+        <button data-tab="game-day" class="nav-tab px-4 py-2.5 border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition flex items-center gap-2">
+          <span>🏈</span> Game Day
+        </button>
+        <button data-tab="roster" class="nav-tab px-4 py-2.5 border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition flex items-center gap-2">
+          <span>📋</span> Roster & Ironman 5
+        </button>
+        <button data-tab="draft" class="nav-tab px-4 py-2.5 border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition flex items-center gap-2">
+          <span>🎯</span> Draft Room <span id="draft-tab-badge" class="hidden text-xs bg-amber-500 text-slate-950 px-1.5 py-0.2 rounded-full font-bold">Live</span>
+        </button>
+        <button data-tab="coaches" class="nav-tab px-4 py-2.5 border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition flex items-center gap-2">
+          <span>🧢</span> Coaching Staff
+        </button>
+        <button data-tab="trades" class="nav-tab px-4 py-2.5 border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition flex items-center gap-2">
+          <span>🤝</span> Trade Desk <span id="trade-tab-badge" class="hidden text-xs bg-rose-500 text-white px-1.5 py-0.2 rounded-full font-bold">1</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
+
+    <!-- TAB 1: OWNER'S BOX (Dashboard) -->
+    <section id="tab-owners-box" class="tab-content space-y-6">
+      <!-- Top Alert / Notice if Draft is pending -->
+      <div id="draft-alert-banner" class="hidden bg-gradient-to-r from-amber-900/40 via-amber-800/30 to-amber-900/40 border border-amber-500/50 p-4 rounded-xl flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">📢</span>
+          <div>
+            <h3 class="font-bold text-amber-200">The Inaugural Draft is Open!</h3>
+            <p class="text-xs text-amber-300/80">Draft your 10 kids before kickoff! 60 playground prospects are waiting on the blacktop.</p>
+          </div>
+        </div>
+        <button id="btn-goto-draft" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm shadow-md transition">
+          Enter Draft Room →
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Next Matchup Preview Card -->
+        <div class="lg:col-span-2 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Next Matchup • Week <span id="dash-week-num">1</span></span>
+            <span class="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-md border border-slate-700" id="dash-matchup-rule">50-Yard Field • No Kickoffs</span>
+          </div>
+
+          <div class="flex flex-col md:flex-row items-center justify-between gap-6 py-4 px-2" id="dash-matchup-content">
+            <!-- Home Team -->
+            <div class="flex items-center gap-4 flex-1">
+              <div class="w-16 h-16 rounded-2xl bg-rose-600/20 border-2 border-rose-500 flex items-center justify-center text-3xl shadow-lg" id="dash-home-icon">
+                🔨
+              </div>
+              <div>
+                <h4 class="text-lg font-black text-white" id="dash-home-name">Cul-de-sac Crushers</h4>
+                <p class="text-xs text-slate-400" id="dash-home-coach">Coach: Annie 'Rocket'</p>
+                <div class="text-xs font-mono text-emerald-400 font-semibold" id="dash-home-ovr">Ironman 5 OVR: 81</div>
+              </div>
+            </div>
+
+            <!-- VS Badge -->
+            <div class="flex flex-col items-center">
+              <span class="font-arcade text-xl text-amber-400 font-black px-3 py-1 bg-slate-800/80 rounded-xl border border-slate-700">VS</span>
+              <span class="text-[10px] text-slate-500 mt-1 uppercase">Neutral Ground</span>
+            </div>
+
+            <!-- Away Team -->
+            <div class="flex items-center justify-end gap-4 flex-1 text-right">
+              <div>
+                <h4 class="text-lg font-black text-white" id="dash-away-name">Treehouse Titans</h4>
+                <p class="text-xs text-slate-400" id="dash-away-coach">Coach: Pete 'Steamroller'</p>
+                <div class="text-xs font-mono text-emerald-400 font-semibold" id="dash-away-ovr">Ironman 5 OVR: 79</div>
+              </div>
+              <div class="w-16 h-16 rounded-2xl bg-emerald-600/20 border-2 border-emerald-500 flex items-center justify-center text-3xl shadow-lg" id="dash-away-icon">
+                🌲
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
+            <div class="text-xs text-slate-400">
+              <span class="font-semibold text-slate-200">Coach Strategy:</span>
+              <span id="dash-coach-hint">Annie's Air Raid will test the Titans' secondary.</span>
+            </div>
+            <div class="flex gap-2">
+              <button id="btn-quick-sim-game" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-4 py-2 rounded-lg border border-slate-700 transition">
+                ⚡ Instant Sim
+              </button>
+              <button id="btn-play-game-live" class="bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white text-xs font-bold px-5 py-2 rounded-lg shadow-md transition flex items-center gap-2">
+                <span>Play Live Sim</span> →
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Coach Snapshot Card -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Head Coach</span>
+              <span class="text-xs bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded font-semibold" id="dash-coach-scheme">Air Raid</span>
+            </div>
+            <h4 class="text-lg font-black text-white" id="dash-coach-name">Annie 'Rocket' O'Reilly</h4>
+            <p class="text-xs text-slate-400 italic mt-1" id="dash-coach-quote">"If we run the ball twice in a row, somebody call the paramedics."</p>
+
+            <div class="mt-4 space-y-2 text-xs">
+              <div class="flex justify-between text-slate-400">
+                <span>Pass/Run Ratio:</span>
+                <span class="font-mono font-bold text-slate-200" id="dash-coach-runpass">72% Pass / 28% Run</span>
+              </div>
+              <div class="flex justify-between text-slate-400">
+                <span>4th Down Tendency:</span>
+                <span class="font-mono font-bold text-amber-400" id="dash-coach-4th">Aggressive (65%)</span>
+              </div>
+              <div class="flex justify-between text-slate-400">
+                <span>PAT Preference:</span>
+                <span class="font-mono font-bold text-slate-200" id="dash-coach-pat">50% 2-Pt Conversion</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-slate-800 flex justify-between items-center">
+            <span class="text-xs text-slate-400">Friction Level: <span class="text-emerald-400 font-bold">Smooth</span></span>
+            <button data-tab="coaches" class="text-xs text-rose-400 hover:text-rose-300 font-semibold underline">
+              Manage Staff →
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Standings & League News Row -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Standings Table -->
+        <div class="lg:col-span-2 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <span>🏆</span> League Standings
+            </h3>
+            <span class="text-xs text-slate-400">Top 2 advance to Backyard Bowl</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-800/60 text-slate-400 uppercase font-bold text-[10px] tracking-wider">
+                <tr>
+                  <th class="py-2.5 px-3 rounded-l">Rank</th>
+                  <th class="py-2.5 px-3">Team</th>
+                  <th class="py-2.5 px-3 text-center">W</th>
+                  <th class="py-2.5 px-3 text-center">L</th>
+                  <th class="py-2.5 px-3 text-center">PF</th>
+                  <th class="py-2.5 px-3 text-center">PA</th>
+                  <th class="py-2.5 px-3 text-center rounded-r">DIFF</th>
+                </tr>
+              </thead>
+              <tbody id="standings-table-body" class="divide-y divide-slate-800">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- League News Feed -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col">
+          <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+            <span>📰</span> Cul-de-sac Gazette
+          </h3>
+          <div id="league-news-feed" class="flex-grow space-y-3 overflow-y-auto max-h-72 pr-1 text-xs">
+            <!-- News items rendered here -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: GAME DAY (Play-by-play live sim & field viewer) -->
+    <section id="tab-game-day" class="tab-content hidden space-y-6">
+      <!-- Game Top Scoreboard -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <!-- Home -->
+          <div class="flex items-center gap-3">
+            <span class="text-2xl" id="sim-home-emoji">🔨</span>
+            <div>
+              <div class="text-sm font-bold text-white" id="sim-home-name">Crushers</div>
+              <div class="text-3xl font-black font-arcade text-white tracking-wider" id="sim-home-score">0</div>
+            </div>
+          </div>
+
+          <!-- Quarter & Clock Box -->
+          <div class="flex flex-col items-center bg-slate-950 px-6 py-2 rounded-xl border border-slate-800 text-center">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Quarter</span>
+            <span class="text-xl font-black font-mono-numbers text-amber-400" id="sim-quarter-clock">Q1 • 06:00</span>
+            <span class="text-xs font-bold text-emerald-400 mt-0.5" id="sim-down-dist">1st & 20 at OWN 5</span>
+          </div>
+
+          <!-- Away -->
+          <div class="flex items-center justify-end gap-3 text-right">
+            <div>
+              <div class="text-sm font-bold text-white" id="sim-away-name">Titans</div>
+              <div class="text-3xl font-black font-arcade text-white tracking-wider" id="sim-away-score">0</div>
+            </div>
+            <span class="text-2xl" id="sim-away-emoji">🌲</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 50-Yard Field Visualizer -->
+      <div class="field-container relative" id="football-field">
+        <div class="endzone-home">CRUSHERS</div>
+        <div class="endzone-away">TITANS</div>
+        
+        <!-- Midfield line (25-yard marker) -->
+        <div class="midfield-line" title="Midfield 25-Yard First Down Target"></div>
+        <span class="absolute top-2 left-1/2 -translate-x-1/2 text-[10px] font-black text-amber-300/80 bg-slate-950/70 px-2 py-0.5 rounded z-20">MIDFIELD 25</span>
+
+        <!-- Yard numbers -->
+        <span class="yard-number" style="left: 15%;">10</span>
+        <span class="yard-number" style="left: 32%;">20</span>
+        <span class="yard-number" style="left: 50%;">25</span>
+        <span class="yard-number" style="left: 68%;">20</span>
+        <span class="yard-number" style="left: 85%;">10</span>
+
+        <!-- Line of Scrimmage & 1st Down Target Marker -->
+        <div id="field-los" class="line-of-scrimmage" style="left: 10%;"></div>
+        <div id="field-marker" class="first-down-marker" style="left: 50%;"></div>
+
+        <!-- Animated Football -->
+        <div id="field-ball" class="football-ball" style="left: 10%;">
+          🏈
+        </div>
+      </div>
+
+      <!-- Simulation Play Controls & Callout -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-sm">
+            📢
+          </div>
+          <div>
+            <div class="text-xs text-slate-400">Play Call From The Sideline:</div>
+            <div class="text-sm font-semibold text-slate-200" id="sim-coach-call">Coach Annie calls a play...</div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button id="btn-step-play" class="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-4 py-2 rounded-lg transition shadow">
+            Next Play ▶
+          </button>
+          <button id="btn-sim-drive" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs px-4 py-2 rounded-lg border border-slate-700 transition">
+            Sim Drive ⏩
+          </button>
+          <button id="btn-sim-full-game" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-lg transition shadow">
+            Sim Full Game ⚡
+          </button>
+        </div>
+      </div>
+
+      <!-- Play-by-Play Ticker & In-Game Boxscore -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Live Play Log -->
+        <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
+          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Live Play-by-Play Log</h4>
+          <div id="sim-play-ticker" class="space-y-2 overflow-y-auto max-h-80 pr-1 text-xs">
+            <div class="text-slate-500 italic p-3 text-center">Kickoff... wait, no kickoffs! Ball is spotted on the 5-yard line. Ready for snap #1!</div>
+          </div>
+        </div>
+
+        <!-- In-Game Ironman Fatigue & Stats -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col">
+          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Ironman 5 Fatigue Meter</h4>
+          <div id="sim-fatigue-list" class="space-y-2 overflow-y-auto max-h-80 pr-1 text-xs">
+            <!-- Fatigued starters with stamina bars rendered here -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: ROSTER & IRONMAN 5 -->
+    <section id="tab-roster" class="tab-content hidden space-y-6">
+      <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <span>📋</span> Roster & Ironman 5 Starting Lineup
+          </h2>
+          <p class="text-xs text-slate-400">Select exactly 5 healthy kids to play both ways (offense & defense). No mid-game substitutions permitted.</p>
+        </div>
+        <div class="flex gap-2">
+          <button id="btn-auto-starters" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-700 transition">
+            Auto-Set Best 5
+          </button>
+        </div>
+      </div>
+
+      <!-- Starters Section (Ironman 5) -->
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+            <span>⭐</span> Active Ironman 5 Starters (<span id="starters-count">5</span> / 5)
+          </h3>
+          <span class="text-xs text-slate-400">Locks at kickoff • Plays every single snap</span>
+        </div>
+        <div id="roster-starters-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <!-- 5 Starter Cards rendered here -->
+        </div>
+      </div>
+
+      <!-- Bench Section -->
+      <div class="pt-4 border-t border-slate-800">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+            <span>🛋️</span> Bench & Reserves (<span id="bench-count">5</span> / 5)
+          </h3>
+          <span class="text-xs text-slate-400">Substitute healthy bench players into the starting 5 before Game Day</span>
+        </div>
+        <div id="roster-bench-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <!-- 5 Bench Cards rendered here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: DRAFT ROOM -->
+    <section id="tab-draft" class="tab-content hidden space-y-6">
+      <!-- Draft Banner & Controls -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <h2 class="text-lg font-black text-white font-arcade">10-ROUND SNAKE DRAFT</h2>
+            <span id="draft-status-pill" class="text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded font-bold">Pick 1 of 60</span>
+          </div>
+          <p class="text-xs text-slate-400 mt-1" id="draft-turn-label">On the Clock: Cul-de-sac Crushers</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button id="btn-auto-draft-user" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-3 py-2 rounded-lg border border-slate-700 transition">
+            Auto-Draft To My Pick
+          </button>
+          <button id="btn-auto-draft-all" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 text-white text-xs font-bold px-4 py-2 rounded-lg shadow transition">
+            ⚡ Complete Full Draft
+          </button>
+        </div>
+      </div>
+
+      <!-- Prospect Pool Filter & Grid -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+          <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Available Prospects (<span id="prospect-count">60</span>)</h3>
+          
+          <div class="flex items-center gap-2 text-xs">
+            <span class="text-slate-400">Sort By:</span>
+            <select id="draft-sort-select" class="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-2.5 py-1 focus:outline-none">
+              <option value="overall">Overall (OVR)</option>
+              <option value="speed">Speed</option>
+              <option value="throwing">Throwing</option>
+              <option value="hands">Hands</option>
+              <option value="tackling">Tackling</option>
+              <option value="endurance">Endurance</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="prospects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-h-[650px] overflow-y-auto pr-1">
+          <!-- Prospect cards rendered here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: COACHING STAFF -->
+    <section id="tab-coaches" class="tab-content hidden space-y-6">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 class="text-lg font-black text-white flex items-center gap-2">
+              <span>🧢</span> Head Coach & Sideline Philosophy
+            </h2>
+            <p class="text-xs text-slate-400">You are the General Manager. Your AI Head Coach decides the play calling, situational aggression, and personnel utilization.</p>
+          </div>
+          <button id="btn-fire-coach" class="bg-red-600 hover:bg-red-500 text-white text-xs font-bold px-4 py-2 rounded-lg shadow-md transition">
+            ⚠️ Fire Head Coach
+          </button>
+        </div>
+
+        <!-- Current Coach Detailed Dossier -->
+        <div id="current-coach-dossier" class="bg-slate-950 border border-slate-800 rounded-xl p-5 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+      <!-- Coach Market & Carousel -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+        <div class="mb-4">
+          <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider">Available Coaching Candidates</h3>
+          <p class="text-xs text-slate-400">Interview candidates to explore their philosophies on 4th downs, fatigue, and pass/run schemes before making a hire.</p>
+        </div>
+
+        <div id="coach-candidates-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Available coaches rendered here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 6: TRADE DESK -->
+    <section id="tab-trades" class="tab-content hidden space-y-6">
+      <!-- Inbound Proposals -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+        <h3 class="text-xs font-bold text-rose-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+          <span>📬</span> Inbound GM Proposals
+        </h3>
+        <div id="inbound-trades-list" class="space-y-4">
+          <!-- Inbound trade cards -->
+        </div>
+      </div>
+
+      <!-- Propose Trade -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">Propose a Trade</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">Select Target Team:</label>
+            <select id="trade-target-team" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg p-2"></select>
+          </div>
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">You Send (Your Player):</label>
+            <select id="trade-my-player" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg p-2"></select>
+          </div>
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">You Receive (Their Player):</label>
+            <select id="trade-their-player" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg p-2"></select>
+          </div>
+        </div>
+
+        <div class="mt-4 flex justify-end">
+          <button id="btn-submit-trade-proposal" class="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-5 py-2 rounded-lg transition shadow">
+            Submit Trade Proposal →
+          </button>
+        </div>
+
+        <div id="trade-response-box" class="hidden mt-4 p-4 rounded-xl border text-xs"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: Post-Game Trainer's Report & Box Score -->
+  <div id="postgame-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-5 animate-fade-in">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">🩺</span>
+          <h3 class="text-lg font-black text-white font-arcade">POST-GAME TRAINER'S REPORT</h3>
+        </div>
+        <button id="btn-close-postgame" class="text-slate-400 hover:text-white text-lg font-bold">&times;</button>
+      </div>
+
+      <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex items-center justify-between">
+        <div class="text-center flex-1">
+          <div class="text-xs text-slate-400" id="modal-home-team">Crushers</div>
+          <div class="text-3xl font-black font-arcade text-white" id="modal-home-score">24</div>
+        </div>
+        <div class="text-xs font-bold text-slate-500 uppercase px-4">FINAL</div>
+        <div class="text-center flex-1">
+          <div class="text-xs text-slate-400" id="modal-away-team">Titans</div>
+          <div class="text-3xl font-black font-arcade text-white" id="modal-away-score">18</div>
+        </div>
+      </div>
+
+      <!-- Trainer's Injury Assessment -->
+      <div>
+        <h4 class="text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">Trainer's Medical Evaluation:</h4>
+        <div id="modal-injuries-container" class="space-y-2 max-h-48 overflow-y-auto">
+          <!-- Injuries listed here -->
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-800 flex justify-between items-center">
+        <span class="text-xs text-slate-400">Remember: Injured players cannot suit up for next week!</span>
+        <button id="btn-continue-season" class="bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 text-white text-xs font-bold px-5 py-2.5 rounded-lg shadow transition">
+          Advance to Next Week →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Coach Interview Dialog -->
+  <div id="coach-interview-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🎙️</span>
+          <h3 class="text-base font-bold text-white">Front Office Interview: <span id="interview-coach-name"></span></h3>
+        </div>
+        <button id="btn-close-interview" class="text-slate-400 hover:text-white text-lg font-bold">&times;</button>
+      </div>
+
+      <div id="interview-qa-container" class="space-y-3 max-h-72 overflow-y-auto text-xs">
+        <!-- Questions and answers -->
+      </div>
+
+      <div class="pt-3 border-t border-slate-800 flex justify-end gap-2">
+        <button id="btn-cancel-interview" class="bg-slate-800 text-slate-300 text-xs font-semibold px-4 py-2 rounded-lg">Close</button>
+        <button id="btn-hire-interviewed-coach" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-lg transition shadow">Hire This Coach</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main JavaScript App -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

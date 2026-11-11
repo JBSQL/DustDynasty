@@ -1,0 +1,164 @@
+/* Backyard Football Simulator Custom Styles */
+
+@import url('https://fonts.googleapis.com/css2?family=Bungee&family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap');
+
+:root {
+  --yard-green: #2d7a3e;
+  --field-stripes: #328945;
+  --chalk-white: #f8fafc;
+  --football-brown: #8b4513;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: #0f172a;
+  color: #f1f5f9;
+}
+
+.font-arcade {
+  font-family: 'Bungee', cursive;
+  letter-spacing: 0.05em;
+}
+
+.font-mono-numbers {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* 50-Yard Field Visualizer */
+.field-container {
+  background: repeating-linear-gradient(
+    90deg,
+    #236332 0px,
+    #236332 10%,
+    #2a723b 10%,
+    #2a723b 20%
+  );
+  border: 4px solid #f8fafc;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 0, 0, 0.4);
+  position: relative;
+  overflow: hidden;
+  height: 180px;
+  border-radius: 12px;
+}
+
+.endzone-home {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 8%;
+  background: linear-gradient(135deg, #e11d48, #be123c);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 11px;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  color: white;
+  letter-spacing: 2px;
+  border-right: 3px solid white;
+}
+
+.endzone-away {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 8%;
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 11px;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  color: white;
+  letter-spacing: 2px;
+  border-left: 3px solid white;
+}
+
+.midfield-line {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: #facc15;
+  box-shadow: 0 0 8px #facc15;
+  z-index: 10;
+}
+
+.line-of-scrimmage {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: #38bdf8;
+  box-shadow: 0 0 10px #38bdf8;
+  z-index: 15;
+  transition: left 0.4s ease-out;
+}
+
+.first-down-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: #f59e0b;
+  border-left: 2px dashed #f59e0b;
+  z-index: 12;
+  transition: left 0.4s ease-out;
+}
+
+.football-ball {
+  position: absolute;
+  top: 48%;
+  transform: translate(-50%, -50%);
+  width: 26px;
+  height: 26px;
+  z-index: 25;
+  transition: left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.2s ease;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.6));
+}
+
+.yard-number {
+  position: absolute;
+  bottom: 6px;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.7);
+  user-select: none;
+}
+
+/* Stat rating badge colors */
+.stat-pill-elite { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid #22c55e; }
+.stat-pill-good { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid #3b82f6; }
+.stat-pill-avg { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b; }
+.stat-pill-poor { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Glow effects */
+.glow-gold {
+  box-shadow: 0 0 15px rgba(250, 204, 21, 0.35);
+}
+.glow-red {
+  box-shadow: 0 0 15px rgba(225, 29, 72, 0.35);
+}

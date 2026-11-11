@@ -1,0 +1,14 @@
+{
+  "name": "backyard-football-sim",
+  "version": "1.0.0",
+  "description": "Backyard Football Simulator - 5v5 Ironman Micro-Fantasy & GM League",
+  "main": "index.html",
+  "type": "module",
+  "scripts": {
+    "start": "python -m http.server 8080",
+    "test": "node test-sim.js"
+  },
+  "keywords": ["football", "simulation", "fantasy", "game"],
+  "author": "",
+  "license": "MIT"
+}
