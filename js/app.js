@@ -121,7 +121,13 @@ function renderOwnersBox() {
   document.getElementById('header-team-name').textContent = userTeam.name;
   document.getElementById('header-team-emoji').textContent = userTeam.emoji;
   document.getElementById('header-team-record').textContent = `${userTeam.record.wins}-${userTeam.record.losses}`;
-  document.getElementById('header-week').textContent = `Week ${league.currentWeek} / ${league.totalWeeks}`;
+  
+  const weekLabel = league.seasonOver
+    ? "Season Over"
+    : league.currentWeek === 11
+      ? "Bowl Week"
+      : `Week ${league.currentWeek} / ${league.totalWeeks}`;
+  document.getElementById('header-week').textContent = weekLabel;
 
   // Draft Banner visibility
   const draftBanner = document.getElementById('draft-alert-banner');
@@ -147,8 +153,16 @@ function renderOwnersBox() {
   const matchups = league.getCurrentWeekMatchups();
   const userMatchup = matchups.find(m => m.homeId === userTeam.id || m.awayId === userTeam.id) || matchups[0];
 
-  if (userMatchup) {
-    document.getElementById('dash-week-num').textContent = league.currentWeek;
+  if (league.seasonOver) {
+    document.getElementById('dash-week-num').textContent = "Season Final";
+    document.getElementById('dash-matchup-rule').textContent = "Season Complete";
+    document.getElementById('dash-coach-hint').textContent = "The season has concluded! Click ↺ Reset in the header anytime to begin a new campaign.";
+    document.getElementById('btn-play-game-live').disabled = true;
+    document.getElementById('btn-quick-sim-game').disabled = true;
+  } else if (userMatchup) {
+    document.getElementById('btn-play-game-live').disabled = false;
+    document.getElementById('btn-quick-sim-game').disabled = false;
+    document.getElementById('dash-week-num').textContent = league.currentWeek === 11 ? "Bowl Week" : league.currentWeek;
     document.getElementById('dash-home-name').textContent = userMatchup.homeTeam.name;
     document.getElementById('dash-home-icon').textContent = userMatchup.homeTeam.emoji;
     document.getElementById('dash-home-coach').textContent = `Coach: ${userMatchup.homeTeam.coach.name}`;
@@ -800,17 +814,22 @@ function renderTradeDesk() {
       responseBox.className = "mt-4 p-4 rounded-xl border border-emerald-500/40 bg-emerald-950/20 text-emerald-300 text-xs";
       responseBox.innerHTML = `<strong>DEAL ACCEPTED!</strong><br>${evaluation.message}`;
 
-      // Swap players
+      // Swap players in rosters
       userTeam.roster = userTeam.roster.filter(p => p.id !== myPlayer.id);
       targetTeam.roster = targetTeam.roster.filter(p => p.id !== theirPlayer.id);
       userTeam.roster.push(theirPlayer);
       targetTeam.roster.push(myPlayer);
+
+      // Clean up starters so traded player is removed if they were starting
+      userTeam.starters = (userTeam.starters || []).filter(p => p.id !== myPlayer.id);
+      targetTeam.starters = (targetTeam.starters || []).filter(p => p.id !== theirPlayer.id);
 
       league.validateTeamStarters(userTeam);
       league.validateTeamStarters(targetTeam);
       league.leagueNews.unshift(`BLOCKBUSTER TRADE: ${userTeam.name} send ${myPlayer.fullName} to ${targetTeam.name} in exchange for ${theirPlayer.fullName}!`);
       league.save();
       refreshAllViews();
+      renderTradeDesk();
     } else {
       responseBox.className = "mt-4 p-4 rounded-xl border border-red-500/40 bg-red-950/20 text-red-300 text-xs";
       responseBox.innerHTML = `<strong>PROPOSAL REJECTED:</strong><br>${evaluation.message}`;
@@ -824,12 +843,17 @@ function executeTrade(tradeId, accept) {
 
   if (accept) {
     const userTeam = league.getUserTeam();
-    const otherTeam = trade.fromTeam;
+    // Resolve otherTeam from league.teams by ID to avoid stale reference
+    const otherTeam = league.teams.find(t => t.id === trade.fromTeam.id) || trade.fromTeam;
 
     userTeam.roster = userTeam.roster.filter(p => p.id !== trade.requesting.id);
     otherTeam.roster = otherTeam.roster.filter(p => p.id !== trade.offering.id);
     userTeam.roster.push(trade.offering);
     otherTeam.roster.push(trade.requesting);
+
+    // Clean up starters so traded player is removed if they were starting
+    userTeam.starters = (userTeam.starters || []).filter(p => p.id !== trade.requesting.id);
+    otherTeam.starters = (otherTeam.starters || []).filter(p => p.id !== trade.offering.id);
 
     league.validateTeamStarters(userTeam);
     league.validateTeamStarters(otherTeam);

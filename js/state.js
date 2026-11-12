@@ -14,12 +14,13 @@ export class LeagueState {
     this.draftPickIndex = 0;
     this.draftCompleted = false;
     this.currentWeek = 1;
-    this.totalWeeks = 5; // 5 regular season weeks + Championship
+    this.totalWeeks = 10; // 10 regular season weeks (double round-robin) + Week 11 Bowl Championship
     this.schedule = [];
     this.inboundTrades = [];
     this.completedGames = [];
+    this.seasonOver = false;
     this.leagueNews = [
-      "Welcome to the Backyard Football League! 6 squads have converged on the cul-de-sac for the inaugural 5v5 season.",
+      "Welcome to the Backyard Football League! 6 squads have converged on the cul-de-sac for a 10-week double round-robin season.",
       "Commissioners announce the official rules: 50-yard field, no kickoffs, 30-yard pass cap, and the Ironman 5 starter lock!"
     ];
 
@@ -117,12 +118,12 @@ export class LeagueState {
   }
 
   generateSchedule() {
-    // 6-team round-robin schedule for 5 regular season weeks
+    // 6-team double round-robin schedule for 10 regular season weeks
     const t = [...this.teams];
     const n = t.length;
     this.schedule = [];
 
-    // Round-robin pairing
+    // First 5 rounds (Round-robin)
     const teamIndices = [0, 1, 2, 3, 4, 5];
     for (let round = 0; round < n - 1; round++) {
       const matchups = [];
@@ -143,14 +144,29 @@ export class LeagueState {
       teamIndices.splice(1, 0, teamIndices.pop());
     }
 
-    // Week 6: Championship & Consolation Bowl
+    // Second 5 rounds (Weeks 6-10: Reverse home/away for the rematch)
+    for (let round = 0; round < n - 1; round++) {
+      const firstHalfWeek = this.schedule[round];
+      const weekNumber = round + 6;
+      const matchups = firstHalfWeek.matchups.map((m, idx) => ({
+        id: `match_w${weekNumber}_${idx}`,
+        homeId: m.awayId,
+        awayId: m.homeId,
+        homeScore: null,
+        awayScore: null,
+        played: false
+      }));
+      this.schedule.push({ week: weekNumber, matchups });
+    }
+
+    // Week 11: Championship & Consolation Bowls
     this.schedule.push({
-      week: 6,
+      week: 11,
       isPlayoffs: true,
       matchups: [
-        { id: "match_w6_champ", title: "Backyard Bowl Championship", homeId: null, awayId: null, played: false },
-        { id: "match_w6_bronze", title: "Mud Cup (3rd Place)", homeId: null, awayId: null, played: false },
-        { id: "match_w6_toilet", title: "Sandbox Toilet Bowl (5th Place)", homeId: null, awayId: null, played: false }
+        { id: "match_w11_champ", title: "Backyard Bowl Championship", homeId: null, awayId: null, played: false },
+        { id: "match_w11_bronze", title: "Mud Cup (3rd Place)", homeId: null, awayId: null, played: false },
+        { id: "match_w11_toilet", title: "Sandbox Toilet Bowl (5th Place)", homeId: null, awayId: null, played: false }
       ]
     });
   }
@@ -159,7 +175,7 @@ export class LeagueState {
     const weekData = this.schedule.find(s => s.week === this.currentWeek);
     if (!weekData) return [];
 
-    // In week 6 (playoffs), resolve seeds if not yet resolved
+    // In week 11 (playoffs), resolve seeds if not yet resolved
     if (weekData.isPlayoffs && !weekData.matchups[0].homeId) {
       const standings = this.getStandings();
       weekData.matchups[0].homeId = standings[0].id;
@@ -227,6 +243,23 @@ export class LeagueState {
   }
 
   advanceWeek() {
+    if (this.seasonOver) return;
+
+    // Check if we just completed Week 11 (the Championship Bowl week)
+    if (this.currentWeek >= 11) {
+      this.seasonOver = true;
+      const champGame = this.schedule.find(s => s.week === 11)?.matchups[0];
+      let champName = "The Champions";
+      if (champGame && champGame.played) {
+        champName = champGame.homeScore > champGame.awayScore
+          ? this.teams.find(t => t.id === champGame.homeId)?.name
+          : this.teams.find(t => t.id === champGame.awayId)?.name;
+      }
+      this.leagueNews.unshift(`🏆 SEASON FINALE: ${champName} hoist the Backyard Bowl Trophy! Congratulations on an epic 10-week season!`);
+      this.save();
+      return;
+    }
+
     // 1. Reduce remaining injury weeks for all players
     const healedPlayers = [];
     this.teams.forEach(team => {
@@ -239,7 +272,7 @@ export class LeagueState {
           }
         }
       });
-      // Auto-validate starters (ensure no injured players are in active 5)
+      // Auto-validate starters (ensure no injured players or players not on roster are in active 5)
       this.validateTeamStarters(team);
     });
 
@@ -247,15 +280,17 @@ export class LeagueState {
       this.leagueNews.unshift(`Injury Update: ${healedPlayers.join(", ")} has been cleared by trainers to return to action!`);
     }
 
-    // 2. Chance of random AI GM proposing an inbound trade to user
-    const userTeam = this.getUserTeam();
-    if (Math.random() < 0.65) {
-      const otherTeams = this.teams.filter(t => !t.isUser);
-      const randomAI = otherTeams[Math.floor(Math.random() * otherTeams.length)];
-      const tradeProposal = generateInboundTrade(userTeam, randomAI);
-      if (tradeProposal) {
-        this.inboundTrades.unshift(tradeProposal);
-        this.leagueNews.unshift(`TRADE OFFER: ${randomAI.name} has submitted a formal trade proposal to your front office!`);
+    // 2. Chance of random AI GM proposing an inbound trade to user (only during regular season)
+    if (this.currentWeek < 10) {
+      const userTeam = this.getUserTeam();
+      if (Math.random() < 0.65) {
+        const otherTeams = this.teams.filter(t => !t.isUser);
+        const randomAI = otherTeams[Math.floor(Math.random() * otherTeams.length)];
+        const tradeProposal = generateInboundTrade(userTeam, randomAI);
+        if (tradeProposal) {
+          this.inboundTrades.unshift(tradeProposal);
+          this.leagueNews.unshift(`TRADE OFFER: ${randomAI.name} has submitted a formal trade proposal to your front office!`);
+        }
       }
     }
 
@@ -264,11 +299,22 @@ export class LeagueState {
   }
 
   validateTeamStarters(team) {
-    // Remove injured players from starters
-    team.starters = team.starters.filter(p => p.injuryWeeksRemaining <= 0);
-    // If fewer than 5, pull best healthy bench players
+    if (!team) return;
+    team.starters = team.starters || [];
+    team.roster = team.roster || [];
+
+    // Ensure starters only contain healthy players who are ACTUALLY on this team's roster
+    team.starters = team.starters.filter(p =>
+      team.roster.some(r => r.id === p.id) &&
+      p.injuryWeeksRemaining <= 0
+    );
+
+    // If fewer than 5, pull best healthy bench players from current roster
     if (team.starters.length < 5) {
-      const healthyBench = team.roster.filter(p => p.injuryWeeksRemaining <= 0 && !team.starters.some(s => s.id === p.id));
+      const healthyBench = team.roster.filter(p =>
+        p.injuryWeeksRemaining <= 0 &&
+        !team.starters.some(s => s.id === p.id)
+      );
       const needed = 5 - team.starters.length;
       team.starters.push(...healthyBench.sort((a, b) => b.overall - a.overall).slice(0, needed));
     }
