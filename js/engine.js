@@ -588,7 +588,9 @@ export class GameEngine {
       // Set pending PAT so the next user play execution resolves the extra point attempt
       this.pendingPAT = true;
       this.scoringTeamKey = offenseTeamKey;
-      this.yardLine = 50; // Ball placed at goal line for PAT setup
+      const offCoach = this.getOffenseCoach();
+      this.pendingPATGoForTwo = Math.random() < offCoach.twoPointPreference;
+      this.yardLine = this.pendingPATGoForTwo ? 40 : 45; // Pre-spot exactly at 5-yd line (45) or 10-yd line (40)
       return;
     }
 
@@ -656,7 +658,7 @@ export class GameEngine {
     const defTeam = this.getDefenseTeam();
     const offenseTeamKey = this.scoringTeamKey || this.possession;
     // Decision: 1 point from the 5, or 2 points from the 10
-    const goForTwo = Math.random() < coach.twoPointPreference;
+    const goForTwo = this.pendingPATGoForTwo != null ? this.pendingPATGoForTwo : (Math.random() < coach.twoPointPreference);
     let patResult;
 
     // PAT is spotted at 5 yards out (45-yd line) or 10 yards out (40-yd line)
@@ -728,7 +730,8 @@ export class GameEngine {
       }
     }
 
-    patResult.possessionKey = offenseTeamKey;
+    const scoringTeam = offenseTeamKey;
+    patResult.possessionKey = scoringTeam;
     patResult.offenseTeam = { name: offTeam.name, short: offTeam.short, color: offTeam.color, emoji: offTeam.emoji };
     patResult.defenseTeam = { name: defTeam.name, short: defTeam.short, color: defTeam.color, emoji: defTeam.emoji };
     patResult.preSnap = { down: "PAT", distance: goForTwo ? 10 : 5, yardLine: patStartYard };
@@ -739,7 +742,7 @@ export class GameEngine {
     this.pendingPAT = false;
     this.scoringTeamKey = null;
 
-    // After TD and PAT, other team gets ball at own 5-yard line (no kickoffs)
+    // Flip possession so opponent gets the ball at own 5 for next drive
     this.flipPossession(5);
     this.drainClock(30);
 

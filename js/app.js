@@ -702,8 +702,11 @@ function updateGameDayView() {
   const targetDesc = eng.firstDownMarker === 25 ? "Line to Gain: MIDFIELD (25)" : "Line to Gain: GOAL LINE (50)";
 
   if (eng.pendingPAT) {
+    const isTwo = eng.pendingPATGoForTwo;
+    const patLabel = isTwo ? "🎯 2-POINT CONVERSION" : "🎯 EXTRA POINT (1-PT)";
+    const patSpot = isTwo ? "from the 10-yd line" : "from the 5-yd line";
     if (downDistEl) {
-      downDistEl.innerHTML = `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded font-mono font-black">🎯 EXTRA POINT</span> <span class="text-slate-300">from the 5-yd line</span>`;
+      downDistEl.innerHTML = `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded font-mono font-black">${patLabel}</span> <span class="text-slate-300 ml-1.5">${patSpot}</span>`;
     }
     if (nextPlayBtn) nextPlayBtn.innerHTML = `Play Extra Point 🎯`;
   } else {
@@ -916,8 +919,8 @@ function renderFieldPlayChalkboard(eng) {
   const offColor = offTeam.color || "#0284c7";
   const defColor = defTeam.color || "#dc2626";
 
-  // If a PAT is pending, line of scrimmage is spotted 5 yards out (45) rather than pegged at 50
-  const currentYard = eng.pendingPAT ? 45 : eng.yardLine;
+  // If a PAT is pending, line of scrimmage is spotted 5 yards out (45) or 10 yards out (40)
+  const currentYard = eng.yardLine;
   const losPercent = yardToPercent(currentYard, eng.possession);
 
   // Get current roles
@@ -927,7 +930,8 @@ function renderFieldPlayChalkboard(eng) {
   const defRoles = eng.assignDefenseRoles(defStarters);
 
   const latestPlay = eng.playLog[0];
-  const concept = eng.pendingPAT ? "ONE_PT_CONVERSION" : (latestPlay ? latestPlay.concept : "PRO_SET");
+  const patConcept = eng.pendingPATGoForTwo ? "TWO_PT_CONVERSION" : "ONE_PT_CONVERSION";
+  const concept = eng.pendingPAT ? patConcept : (latestPlay ? latestPlay.concept : "PRO_SET");
   const defConcept = eng.pendingPAT ? "GOALLINE_STAND" : (latestPlay ? latestPlay.defConcept : "BASE_4_1");
   const yardsGained = latestPlay ? (latestPlay.yardsGained || 0) : 0;
   const isPass = latestPlay && latestPlay.playType === "PASS";
@@ -1078,14 +1082,17 @@ function animatePlayOnField(eng, playResult, onComplete) {
     defBadge.classList.remove('hidden');
   }
 
-  const isHomePoss = eng.possession === "home";
+  // Determine direction based on who actually ran the play (playResult.possessionKey)
+  // rather than eng.possession (which flips immediately on PATs or Turnovers)
+  const playPossKey = playResult.possessionKey || eng.possession;
+  const isHomePoss = playPossKey === "home";
   const dir = isHomePoss ? 1 : -1;
 
   const snapYard = playResult.startYardLine != null ? playResult.startYardLine : eng.yardLine;
-  const snapPercent = yardToPercent(snapYard, eng.possession);
+  const snapPercent = yardToPercent(snapYard, playPossKey);
   const yardsGained = playResult.yardsGained || 0;
   const endYard = Math.max(0, Math.min(50, snapYard + yardsGained));
-  const endPercent = yardToPercent(endYard, eng.possession);
+  const endPercent = yardToPercent(endYard, playPossKey);
 
   // Set call text immediately
   if (coachCallEl) coachCallEl.textContent = `Snap! ${playResult.description}`;
