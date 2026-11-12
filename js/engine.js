@@ -88,6 +88,8 @@ export class GameEngine {
     // Initialize boxscore player stat cards
     this.initPlayerBoxScores();
     this.isGameOver = false;
+    this.pendingPAT = false;
+    this.scoringTeamKey = null;
   }
 
   initPlayerBoxScores() {
@@ -184,6 +186,11 @@ export class GameEngine {
   // Execute one complete play
   stepPlay() {
     if (this.isGameOver) return null;
+
+    // If a touchdown occurred on the previous play, this play resolves the PAT
+    if (this.pendingPAT) {
+      return this.resolvePAT();
+    }
 
     const offCoach = this.getOffenseCoach();
     const defCoach = this.getDefenseCoach();
@@ -536,12 +543,10 @@ export class GameEngine {
         gameClock: this.gameClock
       });
 
-      // Point After Touchdown (PAT) conversion attempt
-      this.resolvePAT();
-
-      // After TD and PAT, other team gets ball at own 5-yard line (no kickoffs)
-      this.flipPossession(5);
-      this.drainClock(30);
+      // Set pending PAT so the next user play execution resolves the extra point attempt
+      this.pendingPAT = true;
+      this.scoringTeamKey = offenseTeamKey;
+      this.yardLine = 50; // Ball placed at goal line for PAT setup
       return;
     }
 
@@ -606,9 +611,10 @@ export class GameEngine {
   resolvePAT() {
     const coach = this.getOffenseCoach();
     const offTeam = this.getOffenseTeam();
-    const offenseTeamKey = this.possession;
+    const offenseTeamKey = this.scoringTeamKey || this.possession;
     // Decision: 1 point from the 5, or 2 points from the 10
     const goForTwo = Math.random() < coach.twoPointPreference;
+    let patResult;
 
     if (goForTwo) {
       // 2-point play from 10-yard line
@@ -616,17 +622,23 @@ export class GameEngine {
       const converted = Math.random() < successChance;
       if (converted) {
         this.score[offenseTeamKey] += 2;
-        this.playLog.unshift({
+        patResult = {
           type: "PAT",
+          playType: "PAT",
           description: `2-POINT CONVERSION SUCCESSFUL! ${offTeam.name} punches it in from the 10-yard line! (+2)`,
-          score: { ...this.score }
-        });
+          score: { ...this.score },
+          converted: true,
+          points: 2
+        };
       } else {
-        this.playLog.unshift({
+        patResult = {
           type: "PAT",
+          playType: "PAT",
           description: `2-POINT CONVERSION FAILED! ${offTeam.name} stopped short from the 10.`,
-          score: { ...this.score }
-        });
+          score: { ...this.score },
+          converted: false,
+          points: 0
+        };
       }
     } else {
       // 1-point play from 5-yard line
@@ -634,19 +646,37 @@ export class GameEngine {
       const converted = Math.random() < successChance;
       if (converted) {
         this.score[offenseTeamKey] += 1;
-        this.playLog.unshift({
+        patResult = {
           type: "PAT",
+          playType: "PAT",
           description: `1-POINT CONVERSION GOOD! Quick slant converts from the 5-yard line! (+1)`,
-          score: { ...this.score }
-        });
+          score: { ...this.score },
+          converted: true,
+          points: 1
+        };
       } else {
-        this.playLog.unshift({
+        patResult = {
           type: "PAT",
+          playType: "PAT",
           description: `1-POINT CONVERSION MISSED! Pass sails wide at the goal line.`,
-          score: { ...this.score }
-        });
+          score: { ...this.score },
+          converted: false,
+          points: 0
+        };
       }
     }
+
+    this.playLog.unshift(patResult);
+
+    // Reset pending PAT flag
+    this.pendingPAT = false;
+    this.scoringTeamKey = null;
+
+    // After TD and PAT, other team gets ball at own 5-yard line (no kickoffs)
+    this.flipPossession(5);
+    this.drainClock(30);
+
+    return patResult;
   }
 
   flipPossession(newStartingYard = 5) {

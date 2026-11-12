@@ -455,7 +455,15 @@ function updateGameDayView() {
   document.getElementById('sim-quarter-clock').textContent = `Q${eng.quarter} • ${mins}:${secs}`;
 
   const offTeam = eng.getOffenseTeam();
-  document.getElementById('sim-down-dist').textContent = `${eng.down}${getOrdinal(eng.down)} & ${eng.yardsToGain} at ${eng.yardLine}-yd line (${offTeam.short})`;
+  const nextPlayBtn = document.getElementById('btn-step-play');
+
+  if (eng.pendingPAT) {
+    document.getElementById('sim-down-dist').textContent = `🏈 EXTRA POINT ATTEMPT (${offTeam.short})`;
+    if (nextPlayBtn) nextPlayBtn.innerHTML = `Play Extra Point 🎯`;
+  } else {
+    document.getElementById('sim-down-dist').textContent = `${eng.down}${getOrdinal(eng.down)} & ${eng.yardsToGain} at ${eng.yardLine}-yd line (${offTeam.short})`;
+    if (nextPlayBtn) nextPlayBtn.innerHTML = `Next Play ▶`;
+  }
 
   // Visual Field Update
   // Field ranges from 0 to 50 yards. Endzones take 8% on left and right. 
