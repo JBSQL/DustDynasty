@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Backyard Football Simulator - 5v5 Ironman GM</title>
+  <title>Dust Dynasty - 5v5 Makeshift Park Football GM</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -13,14 +13,14 @@
   <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-lg">
     <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
       <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-rose-600 flex items-center justify-center text-xl shadow-md">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 via-amber-700 to-yellow-600 flex items-center justify-center text-xl shadow-md border border-amber-500/40">
           🏈
         </div>
         <div>
           <h1 class="text-xl font-black tracking-wide text-white font-arcade flex items-center gap-2">
-            BACKYARD FOOTBALL <span class="text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded uppercase font-sans font-bold">5v5 Ironman</span>
+            DUST DYNASTY <span class="text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded uppercase font-sans font-bold">5v5 Ironman</span>
           </h1>
-          <p class="text-xs text-slate-400">Micro-Fantasy GM League • 50yd Field • 10-Kid Squads</p>
+          <p class="text-xs text-amber-200/70 font-medium">Makeshift Parks • 5 Yards & A Cloud of Dust • 10-Kid Squads</p>
         </div>
       </div>
 
@@ -82,7 +82,7 @@
           <span class="text-2xl">📢</span>
           <div>
             <h3 class="font-bold text-amber-200">The Inaugural Draft is Open!</h3>
-            <p class="text-xs text-amber-300/80">Draft your 10 kids before kickoff! 60 playground prospects are waiting on the blacktop.</p>
+            <p class="text-xs text-amber-300/80">Draft your 10 kids before kickoff! 60 neighborhood prospects are waiting out by the park lot.</p>
           </div>
         </div>
         <button id="btn-goto-draft" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm shadow-md transition">
@@ -206,7 +206,7 @@
             <h3 class="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
               <span>🏆</span> League Standings
             </h3>
-            <span class="text-xs text-slate-400">Top 2 advance to Backyard Bowl</span>
+            <span class="text-xs text-slate-400">Top 2 advance to Dust Bowl Championship</span>
           </div>
 
           <div class="overflow-x-auto">
@@ -600,17 +600,17 @@
 
       <!-- Offseason details -->
       <div class="space-y-4 max-h-96 overflow-y-auto text-xs pr-1">
-        <!-- Graduated Players List -->
+        <!-- Departed Players List -->
         <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
           <div class="flex items-center justify-between">
             <span class="font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-              <span>🎒</span> High School Graduates (Aged Out at 13)
+              <span>🚚</span> Neighborhood Departures (Moved Away / Aged Out at 13)
             </span>
             <span id="offseason-grad-count" class="bg-slate-800 px-2 py-0.5 rounded text-[11px] font-mono text-slate-300">0 Kids</span>
           </div>
-          <p class="text-slate-400 text-[11px]">These kids turned 13 and graduated off the playground to junior high. Their roster spots are now open for the draft.</p>
+          <p class="text-slate-400 text-[11px]">These kids turned 13 or their families moved across town. Their roster spots are now open for the incoming neighborhood rookie draft.</p>
           <div id="offseason-grad-list" class="space-y-1.5 max-h-36 overflow-y-auto pt-1">
-            <!-- Graduated players rendered here -->
+            <!-- Departed players rendered here -->
           </div>
         </div>
 

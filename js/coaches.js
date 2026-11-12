@@ -19,9 +19,9 @@ export const COACH_ARCHETYPES = [
     fourthDownAggressiveness: 0.35,
     blitzRate: 0.35,
     twoPointPreference: 0.20,
-    philosophy: "Smash mouth backyard football. Hand the ball off, chew up grass, and hit them until the sun goes down.",
+    philosophy: "Smash mouth park football. Hand the ball off, chew up dirt, and hit them until the streetlights come on.",
     favoritePlay: "Straight Dive Through Mud",
-    pressQuote: "Three yards and a mouthful of dirt. That builds character."
+    pressQuote: "Five yards and a cloud of dust. That's real football."
   },
   {
     archetype: "Chaos Blitz",
@@ -61,7 +61,7 @@ export const COACH_ARCHETYPES = [
 export const COACH_NAMES = [
   { name: "Coach 'Mad Dog' Miller", title: "Defensive Guru" },
   { name: "Annie 'Rocket' O'Reilly", title: "Offensive Mastermind" },
-  { name: "Pete 'Steamroller' Henderson", title: "Old School Veteran" },
+  { name: "Pete 'Steamroller' Henderson", title: "Park Legend" },
   { name: "Dr. Chloe Chen", title: "Analytics Prodigy" },
   { name: "Benny 'The Gambler' Vance", title: "Riverboat Playcaller" },
   { name: "Coach 'Whispering' Bob", title: "Fundamentals Specialist" },

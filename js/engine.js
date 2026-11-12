@@ -1,5 +1,5 @@
-// Backyard Football Simulation Engine
-// Implements 5v5 Ironman rules, 50-yard field, 30-yard pass cap, fatigue decay, and post-game injuries
+// Dust Dynasty Simulation Engine
+// Implements 5v5 Ironman rules, 50-yard makeshift park field, 30-yard pass cap, fatigue decay, and post-game injuries
 
 export const FIELD_LENGTH = 50;
 export const MIDFIELD = 25;
@@ -7,13 +7,14 @@ export const MAX_PASS_DISTANCE = 30;
 
 // Common injury types for the post-game trainer's report
 export const INJURY_TABLE = [
-  { name: "Scraped Knees & Deep Grass Burn", duration: 1, severity: "Minor" },
-  { name: "Sprained Thumb from Stiff-Arm", duration: 1, severity: "Minor" },
-  { name: "Bruised Ribs on Goal Line Hit", duration: 1, severity: "Moderate" },
-  { name: "Sprained Ankle on Sharp Cut", duration: 2, severity: "Moderate" },
-  { name: "Hyperextended Elbow", duration: 2, severity: "Moderate" },
-  { name: "Stinger / Sore Shoulder", duration: 3, severity: "Severe" },
-  { name: "Deep Thigh Contusion / Charlie Horse", duration: 2, severity: "Moderate" }
+  { name: "Scraped Knees & Deep Gravel Burn", duration: 1, severity: "Minor" },
+  { name: "Twisted Ankle in Gopher Hole", duration: 1, severity: "Minor" },
+  { name: "Bruised Ribs on Hardpan Dirt", duration: 1, severity: "Moderate" },
+  { name: "Sprained Ankle on Uneven Turf", duration: 2, severity: "Moderate" },
+  { name: "Sprained Wrist Bracing on Hard Dirt", duration: 2, severity: "Moderate" },
+  { name: "Pebble Bruise & Charlie Horse", duration: 2, severity: "Moderate" },
+  { name: "Stinger from Hard Mud Collision", duration: 3, severity: "Severe" },
+  { name: "Hyperextended Elbow on Patchy Field", duration: 2, severity: "Moderate" }
 ];
 
 function randomFloat(min, max) {

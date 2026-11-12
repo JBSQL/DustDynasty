@@ -23,8 +23,8 @@ export class LeagueState {
     this.completedGames = [];
     this.seasonOver = false;
     this.leagueNews = [
-      "Welcome to the Backyard Football League! 6 squads have converged on the cul-de-sac for a 10-week double round-robin season.",
-      "Commissioners announce the official rules: 50-yard field, no kickoffs, 30-yard pass cap, and the Ironman 5 starter lock!"
+      "Welcome to Dust Dynasty! 6 neighborhood squads have staked out the makeshift dirt lot for a 10-week double round-robin season.",
+      "Rules of the Park Lot: 50-yard makeshift field, five yards and a cloud of dust, 30-yard pass cap, and the Ironman 5 starter lock!"
     ];
 
     this.initDraft();
@@ -185,9 +185,9 @@ export class LeagueState {
       week: 11,
       isPlayoffs: true,
       matchups: [
-        { id: "match_w11_champ", title: "Backyard Bowl Championship", homeId: null, awayId: null, played: false },
+        { id: "match_w11_champ", title: "Dust Bowl Championship", homeId: null, awayId: null, played: false },
         { id: "match_w11_bronze", title: "Mud Cup (3rd Place)", homeId: null, awayId: null, played: false },
-        { id: "match_w11_toilet", title: "Sandbox Toilet Bowl (5th Place)", homeId: null, awayId: null, played: false }
+        { id: "match_w11_toilet", title: "Sandlot Consolation (5th Place)", homeId: null, awayId: null, played: false }
       ]
     });
   }
@@ -276,7 +276,7 @@ export class LeagueState {
           ? this.teams.find(t => t.id === champGame.homeId)?.name
           : this.teams.find(t => t.id === champGame.awayId)?.name;
       }
-      this.leagueNews.unshift(`🏆 SEASON FINALE: ${champName} hoist the Backyard Bowl Trophy! Congratulations on an epic 10-week season!`);
+      this.leagueNews.unshift(`🏆 SEASON FINALE: ${champName} hoist the Dust Bowl Trophy! Congratulations on an epic 10-week season!`);
       this.save();
       return;
     }
@@ -439,7 +439,7 @@ export class LeagueState {
     this.generateSchedule();
 
     const topPickTeam = reverseOrder[0];
-    this.leagueNews.unshift(`SEASON ${this.seasonYear} KICKOFF: The playground opens for a new campaign! ${graduates.length} kids graduated to high school. ${topPickTeam.name} holds the #1 overall pick!`);
+    this.leagueNews.unshift(`SEASON ${this.seasonYear} KICKOFF: The park lot opens for a new campaign! ${graduates.length} kids aged out or moved away. ${topPickTeam.name} holds the #1 overall pick!`);
     this.save();
   }
 

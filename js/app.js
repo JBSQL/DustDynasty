@@ -977,7 +977,7 @@ function openOffseasonModal() {
   gradCount.textContent = `${report.graduates.length} Kid${report.graduates.length === 1 ? '' : 's'}`;
 
   if (report.graduates.length === 0) {
-    gradList.innerHTML = `<div class="p-3 bg-slate-900 rounded text-slate-400 italic text-center">No kids turned 13 this season! All players return for another campaign.</div>`;
+    gradList.innerHTML = `<div class="p-3 bg-slate-900 rounded text-slate-400 italic text-center">No kids aged out or moved away this season! All players return for another campaign.</div>`;
   } else {
     gradList.innerHTML = report.graduates.map(g => {
       const isUser = g.teamId === league.getUserTeam().id;
@@ -988,7 +988,7 @@ function openOffseasonModal() {
             <span class="text-[10px] text-slate-400 block">${g.player.archetype} • OVR ${g.player.overall} • ${g.team}</span>
           </div>
           <span class="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] px-2 py-0.5 rounded font-mono font-bold">
-            Turned 13 🎓
+            Aged Out / Moved 🚚
           </span>
         </div>
       `;

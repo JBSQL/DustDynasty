@@ -142,7 +142,7 @@ export function evaluateTrade(aiTeam, offeredPlayer, requestedPlayer) {
   } else {
     return {
       accepted: false,
-      message: `"${aiTeam.gmName}: Are you kidding me? ${requestedPlayer.shortName} is the cornerstone of our playground! ${offeredPlayer.shortName} doesn't cut it. Sweeten the pot or no deal."`
+      message: `"${aiTeam.gmName}: Are you kidding me? ${requestedPlayer.shortName} is the cornerstone of our squad out here at the park lot! ${offeredPlayer.shortName} doesn't cut it. Sweeten the pot or no deal."`
     };
   }
 }
@@ -167,7 +167,7 @@ export function generateInboundTrade(userTeam, aiTeam) {
   if (offer.id === target.id) return null;
 
   const pitchTemplates = [
-    `"Word on the blacktop is you need more depth. We'll give you ${offer.fullName} (${offer.archetype}, OVR ${offer.overall}) in exchange for ${target.fullName} (${target.archetype}, OVR ${target.overall}). What do you say?"`,
+    `"Word around the neighborhood is you need more depth. We'll give you ${offer.fullName} (${offer.archetype}, OVR ${offer.overall}) in exchange for ${target.fullName} (${target.archetype}, OVR ${target.overall}). What do you say?"`,
     `"Hey GM, our coach is begging for a kid with ${target.fullName}'s skillset. We're willing to part with our stud ${offer.fullName} to make it happen today."`,
     `"Trade alert from the Treehouse! We're putting ${offer.fullName} on the trade block. Send us ${target.fullName} and the trade is locked."`
   ];
