@@ -331,29 +331,33 @@
       </div>
 
       <!-- Simulation Play Controls & Callout -->
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-wrap items-center justify-between gap-4">
-        <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-sm">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex items-center justify-between gap-4 min-h-[76px]">
+        <!-- Announcement Text Cell (Flexible width, cannot push buttons) -->
+        <div class="flex items-center gap-3 min-w-0 flex-1">
+          <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-base shrink-0 border border-amber-500/30">
             📢
           </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="text-xs text-slate-400">Play Call From The Sideline:</span>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2 mb-0.5">
+              <span class="text-[11px] text-slate-400 font-medium">Sideline Call:</span>
               <span id="sim-play-concept-badge" class="hidden text-[10px] font-bold px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-700/50"></span>
               <span id="sim-def-concept-badge" class="hidden text-[10px] font-bold px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-700/50"></span>
             </div>
-            <div class="text-sm font-semibold text-slate-200" id="sim-coach-call">Coach Annie calls a play...</div>
+            <div class="text-sm font-semibold text-slate-200 truncate md:whitespace-normal" id="sim-coach-call" title="Play announcement">
+              Coach Annie calls a play...
+            </div>
           </div>
         </div>
 
-        <div class="flex items-center gap-2">
-          <button id="btn-step-play" class="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-4 py-2 rounded-lg transition shadow">
+        <!-- Action Buttons (Pinned right, fixed position and widths) -->
+        <div class="flex items-center gap-2 shrink-0">
+          <button id="btn-step-play" class="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-4 py-2.5 rounded-lg transition shadow w-36 text-center shrink-0">
             Next Play ▶
           </button>
-          <button id="btn-sim-drive" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs px-4 py-2 rounded-lg border border-slate-700 transition">
+          <button id="btn-sim-drive" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs px-3.5 py-2.5 rounded-lg border border-slate-700 transition shrink-0 whitespace-nowrap">
             Sim Drive ⏩
           </button>
-          <button id="btn-sim-full-game" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-lg transition shadow">
+          <button id="btn-sim-full-game" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-bold text-xs px-3.5 py-2.5 rounded-lg transition shadow shrink-0 whitespace-nowrap">
             Sim Full Game ⚡
           </button>
         </div>
