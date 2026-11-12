@@ -76,6 +76,10 @@ export function createPlayer(customOverrides = {}) {
 
   const overall = Math.round((speed * 0.28) + (throwing * 0.20) + (hands * 0.20) + (tackling * 0.20) + (endurance * 0.12));
 
+  // Dynasty Age: Kids enter playground between ages 8 and 11
+  const age = customOverrides.age || randomBetween(8, 11);
+  const yearsRemaining = Math.max(1, 13 - age); // Graduates/ages out at 13 to High School
+
   const player = {
     id: "p_" + (nextPlayerId++),
     firstName,
@@ -84,6 +88,8 @@ export function createPlayer(customOverrides = {}) {
     fullName: nickname ? `${firstName} "${nickname}" ${lastName}` : `${firstName} ${lastName}`,
     shortName: nickname ? `"${nickname}" ${lastName}` : `${firstName.charAt(0)}. ${lastName}`,
     archetype: archetype.name,
+    age,
+    yearsRemaining,
     height: `${feet}'${inches}"`,
     heightInches,
     weight,

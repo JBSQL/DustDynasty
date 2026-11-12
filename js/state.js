@@ -15,6 +15,9 @@ export class LeagueState {
     this.draftCompleted = false;
     this.currentWeek = 1;
     this.totalWeeks = 10; // 10 regular season weeks (double round-robin) + Week 11 Bowl Championship
+    this.seasonYear = 1;
+    this.graduatedHistory = [];
+    this.offseasonReport = null;
     this.schedule = [];
     this.inboundTrades = [];
     this.completedGames = [];
@@ -32,14 +35,32 @@ export class LeagueState {
     return this.teams.find(t => t.isUser);
   }
 
-  initDraft() {
-    // 10 rounds, 6 teams = 60 total picks
+  initDraft(customOrder = null) {
     this.draftOrder = [];
-    for (let round = 0; round < 10; round++) {
-      const order = round % 2 === 0 ? [...this.teams] : [...this.teams].reverse();
-      order.forEach(team => {
-        this.draftOrder.push({ round: round + 1, teamId: team.id });
-      });
+    if (customOrder) {
+      // Dynasty Rookie Draft: Each team drafts up to fill their 10-man roster
+      const maxNeeded = Math.max(...this.teams.map(t => Math.max(0, 10 - t.roster.length)), 1);
+      // Track projected roster counts as picks are slotted
+      const projectedCount = {};
+      this.teams.forEach(t => projectedCount[t.id] = t.roster.length);
+
+      for (let round = 0; round < maxNeeded; round++) {
+        const roundOrder = round % 2 === 0 ? [...customOrder] : [...customOrder].reverse();
+        roundOrder.forEach(team => {
+          if (projectedCount[team.id] < 10) {
+            this.draftOrder.push({ round: round + 1, teamId: team.id });
+            projectedCount[team.id]++;
+          }
+        });
+      }
+    } else {
+      // Inaugural Draft: 10 rounds, 6 teams = 60 picks
+      for (let round = 0; round < 10; round++) {
+        const order = round % 2 === 0 ? [...this.teams] : [...this.teams].reverse();
+        order.forEach(team => {
+          this.draftOrder.push({ round: round + 1, teamId: team.id });
+        });
+      }
     }
   }
 
@@ -331,6 +352,95 @@ export class LeagueState {
       // Points Scored
       return b.record.pointsFor - a.record.pointsFor;
     });
+  }
+
+  // Calculate reverse standings draft order (worst team picks #1)
+  getReverseStandingsDraftOrder() {
+    return [...this.getStandings()].reverse();
+  }
+
+  // Generate offseason transition report: age kids, identify graduates, compute draft order
+  prepareOffseasonReport() {
+    const draftOrder = this.getReverseStandingsDraftOrder();
+    const graduates = [];
+
+    this.teams.forEach(team => {
+      team.roster.forEach(player => {
+        const nextAge = (player.age || 10) + 1;
+        if (nextAge >= 13) {
+          graduates.push({
+            player: { ...player },
+            team: team.name,
+            teamId: team.id,
+            finalAge: nextAge
+          });
+        }
+      });
+    });
+
+    this.offseasonReport = {
+      graduates,
+      draftOrderTeams: draftOrder.map((t, idx) => ({ pick: idx + 1, team: t })),
+      fromYear: this.seasonYear,
+      toYear: this.seasonYear + 1
+    };
+
+    return this.offseasonReport;
+  }
+
+  // Advance the dynasty into the next season!
+  startNextDynastySeason() {
+    this.seasonYear++;
+    const graduates = [];
+
+    // 1. Calculate draft order from PREVIOUS season's final standings (worst picks first)
+    const reverseOrder = this.getReverseStandingsDraftOrder();
+
+    // 2. Age players and remove graduates (age 13+)
+    this.teams.forEach(team => {
+      // Heal all injuries over the summer
+      team.roster.forEach(player => {
+        player.injuryWeeksRemaining = 0;
+        player.injuryDescription = null;
+        player.age = (player.age || 10) + 1;
+        player.yearsRemaining = Math.max(0, 13 - player.age);
+      });
+
+      const agedOut = team.roster.filter(p => p.age >= 13);
+      agedOut.forEach(p => {
+        graduates.push({ ...p, teamName: team.name });
+      });
+
+      // Keep only kids younger than 13
+      team.roster = team.roster.filter(p => p.age < 13);
+      team.starters = (team.starters || []).filter(p => p.age < 13);
+
+      // Reset team season win/loss records for the new year
+      team.record = { wins: 0, losses: 0, ties: 0, pointsFor: 0, pointsAgainst: 0 };
+    });
+
+    this.graduatedHistory.push(...graduates);
+
+    // 3. Replenish rookie prospect pool with fresh young prospects (ages 8 to 11)
+    this.prospectPool = generateProspectPool(35);
+
+    // 4. Reset draft state
+    this.draftPickIndex = 0;
+    this.draftCompleted = false;
+    this.currentWeek = 1;
+    this.seasonOver = false;
+    this.inboundTrades = [];
+    this.completedGames = [];
+
+    // 5. Build dynamic rookie draft order (teams pick until 10-player rosters are filled)
+    this.initDraft(reverseOrder);
+
+    // 6. Generate fresh 10-week schedule + Week 11 Championship Bowls
+    this.generateSchedule();
+
+    const topPickTeam = reverseOrder[0];
+    this.leagueNews.unshift(`SEASON ${this.seasonYear} KICKOFF: The playground opens for a new campaign! ${graduates.length} kids graduated to high school. ${topPickTeam.name} holds the #1 overall pick!`);
+    this.save();
   }
 
   hireCoach(newCoach) {

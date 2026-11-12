@@ -32,6 +32,10 @@
           <span class="text-xs font-mono font-bold bg-rose-500 text-white px-2 py-0.5 rounded-full" id="header-team-record">0-0</span>
         </div>
 
+        <div class="bg-slate-800/80 px-2.5 py-1.5 rounded-lg border border-slate-700 text-xs font-bold font-mono text-purple-300" id="header-year">
+          Year 1
+        </div>
+
         <div class="bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700 text-sm font-semibold text-amber-400" id="header-week">
           Week 1 / 10
         </div>
@@ -151,6 +155,9 @@
               </button>
               <button id="btn-play-game-live" class="bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white text-xs font-bold px-5 py-2 rounded-lg shadow-md transition flex items-center gap-2">
                 <span>Play Live Sim</span> →
+              </button>
+              <button id="btn-advance-offseason" class="hidden bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold px-5 py-2 rounded-lg shadow-md transition flex items-center gap-2">
+                <span>Start Offseason & Draft</span> →
               </button>
             </div>
           </div>
@@ -573,6 +580,57 @@
       <div class="pt-3 border-t border-slate-800 flex justify-end gap-2">
         <button id="btn-cancel-interview" class="bg-slate-800 text-slate-300 text-xs font-semibold px-4 py-2 rounded-lg">Close</button>
         <button id="btn-hire-interviewed-coach" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-lg transition shadow">Hire This Coach</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Offseason Dynasty & Draft Order Modal -->
+  <div id="offseason-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">🎓</span>
+          <div>
+            <h3 class="text-base font-black text-white font-arcade">OFFSEASON REPORT & DYNASTY TRANSITION</h3>
+            <p class="text-xs text-slate-400">Aging Out • Standings Draft Order • Incoming Rookie Class</p>
+          </div>
+        </div>
+        <button id="btn-close-offseason" class="text-slate-400 hover:text-white text-lg font-bold">&times;</button>
+      </div>
+
+      <!-- Offseason details -->
+      <div class="space-y-4 max-h-96 overflow-y-auto text-xs pr-1">
+        <!-- Graduated Players List -->
+        <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span>🎒</span> High School Graduates (Aged Out at 13)
+            </span>
+            <span id="offseason-grad-count" class="bg-slate-800 px-2 py-0.5 rounded text-[11px] font-mono text-slate-300">0 Kids</span>
+          </div>
+          <p class="text-slate-400 text-[11px]">These kids turned 13 and graduated off the playground to junior high. Their roster spots are now open for the draft.</p>
+          <div id="offseason-grad-list" class="space-y-1.5 max-h-36 overflow-y-auto pt-1">
+            <!-- Graduated players rendered here -->
+          </div>
+        </div>
+
+        <!-- Standings-Based Draft Order -->
+        <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
+          <span class="font-bold text-purple-400 uppercase tracking-wider flex items-center gap-1.5">
+            <span>🎯</span> Official Draft Order (Reverse Standings)
+          </span>
+          <p class="text-slate-400 text-[11px]">In true dynasty fashion, worst records pick first to give struggling squads a franchise-altering rookie!</p>
+          <div id="offseason-draft-order-list" class="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1 font-mono">
+            <!-- Draft order rendered here -->
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-800 flex justify-between items-center">
+        <span class="text-xs text-slate-400">Injuries have healed over the summer break!</span>
+        <button id="btn-start-new-season-draft" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white text-xs font-bold px-5 py-2.5 rounded-lg shadow transition">
+          Enter Rookie Draft Room →
+        </button>
       </div>
     </div>
   </div>

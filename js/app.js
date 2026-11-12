@@ -28,10 +28,13 @@ function renderPlayerCard(player, isStarter = false, canSwap = false) {
           <span class="text-xs font-black font-mono ${isInjured ? 'text-red-400' : player.overall >= 80 ? 'text-emerald-400' : 'text-amber-400'}">OVR ${player.overall}</span>
         </div>
         <h4 class="text-sm font-bold text-white truncate" title="${player.fullName}">${player.fullName}</h4>
-        <div class="text-[11px] text-slate-400 flex gap-2 mt-0.5">
+        <div class="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
           <span>${player.height}</span>
           <span>•</span>
           <span>${player.weight} lbs</span>
+          <span>•</span>
+          <span class="text-amber-300 font-semibold">Age ${player.age || 10}</span>
+          <span class="text-[10px] text-slate-500 font-mono">(${player.yearsRemaining !== undefined ? player.yearsRemaining : Math.max(1, 13 - (player.age || 10))}y left)</span>
         </div>
 
         <!-- Injury Alert if any -->
@@ -173,19 +176,39 @@ function renderOwnersBox() {
     if (injuryTabBadge) injuryTabBadge.classList.add('hidden');
   }
 
+  // Year badge in header
+  const yearBadge = document.getElementById('header-year');
+  if (yearBadge) yearBadge.textContent = `Year ${league.seasonYear || 1}`;
+
   // Next Matchup
   const matchups = league.getCurrentWeekMatchups();
   const userMatchup = matchups.find(m => m.homeId === userTeam.id || m.awayId === userTeam.id) || matchups[0];
 
+  const playLiveBtn = document.getElementById('btn-play-game-live');
+  const quickSimBtn = document.getElementById('btn-quick-sim-game');
+  const offseasonBtn = document.getElementById('btn-advance-offseason');
+
   if (league.seasonOver) {
     document.getElementById('dash-week-num').textContent = "Season Final";
     document.getElementById('dash-matchup-rule').textContent = "Season Complete";
-    document.getElementById('dash-coach-hint').textContent = "The season has concluded! Click ↺ Reset in the header anytime to begin a new campaign.";
-    document.getElementById('btn-play-game-live').disabled = true;
-    document.getElementById('btn-quick-sim-game').disabled = true;
+    document.getElementById('dash-coach-hint').textContent = "The season has concluded! Review the standings and advance to the Offseason Draft.";
+    if (playLiveBtn) playLiveBtn.classList.add('hidden');
+    if (quickSimBtn) quickSimBtn.classList.add('hidden');
+    if (offseasonBtn) {
+      offseasonBtn.classList.remove('hidden');
+      offseasonBtn.onclick = () => openOffseasonModal();
+    }
   } else if (userMatchup) {
-    document.getElementById('btn-play-game-live').disabled = false;
-    document.getElementById('btn-quick-sim-game').disabled = false;
+    if (playLiveBtn) {
+      playLiveBtn.classList.remove('hidden');
+      playLiveBtn.disabled = false;
+    }
+    if (quickSimBtn) {
+      quickSimBtn.classList.remove('hidden');
+      quickSimBtn.disabled = false;
+    }
+    if (offseasonBtn) offseasonBtn.classList.add('hidden');
+
     document.getElementById('dash-week-num').textContent = league.currentWeek === 11 ? "Bowl Week" : league.currentWeek;
     document.getElementById('dash-home-name').textContent = userMatchup.homeTeam.name;
     document.getElementById('dash-home-icon').textContent = userMatchup.homeTeam.emoji;
@@ -357,7 +380,7 @@ function renderDraftRoom() {
     document.getElementById('btn-auto-draft-user').disabled = true;
     document.getElementById('btn-auto-draft-all').disabled = true;
   } else {
-    draftPill.textContent = `Round ${turn.round} • Pick ${turn.pickNumber} / 60`;
+    draftPill.textContent = `Round ${turn.round} • Pick ${turn.pickNumber} / ${league.draftOrder.length}`;
     draftTurnLabel.innerHTML = `On The Clock: <span class="font-bold text-white">${turn.team.name}</span> ${turn.isUserTurn ? '<span class="text-xs bg-rose-500 text-white px-2 py-0.5 rounded font-bold ml-2">YOUR TURN</span>' : ''}`;
   }
 
@@ -402,10 +425,13 @@ function renderProspectGrid() {
           <span class="text-xs font-black font-mono text-emerald-400">OVR ${player.overall}</span>
         </div>
         <h4 class="text-sm font-bold text-white truncate">${player.fullName}</h4>
-        <div class="text-[11px] text-slate-400 flex gap-2 mt-0.5">
+        <div class="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
           <span>${player.height}</span>
           <span>•</span>
           <span>${player.weight} lbs</span>
+          <span>•</span>
+          <span class="text-amber-300 font-semibold">Age ${player.age || 9}</span>
+          <span class="text-[10px] text-slate-500 font-mono">(${player.yearsRemaining !== undefined ? player.yearsRemaining : Math.max(1, 13 - (player.age || 9))}y left)</span>
         </div>
 
         <div class="grid grid-cols-5 gap-1 text-center mt-3 pt-2 border-t border-slate-800">
@@ -934,6 +960,69 @@ function executeTrade(tradeId, accept) {
 function refreshAllViews() {
   renderOwnersBox();
   renderRosterView();
+}
+
+// -------------------------------------------------------------
+// TAB: OFFSEASON MODAL & DYNASTY TRANSITION
+// -------------------------------------------------------------
+function openOffseasonModal() {
+  const modal = document.getElementById('offseason-modal');
+  if (!modal) return;
+
+  const report = league.prepareOffseasonReport();
+
+  // 1. Populate Graduates List
+  const gradList = document.getElementById('offseason-grad-list');
+  const gradCount = document.getElementById('offseason-grad-count');
+  gradCount.textContent = `${report.graduates.length} Kid${report.graduates.length === 1 ? '' : 's'}`;
+
+  if (report.graduates.length === 0) {
+    gradList.innerHTML = `<div class="p-3 bg-slate-900 rounded text-slate-400 italic text-center">No kids turned 13 this season! All players return for another campaign.</div>`;
+  } else {
+    gradList.innerHTML = report.graduates.map(g => {
+      const isUser = g.teamId === league.getUserTeam().id;
+      return `
+        <div class="p-2 bg-slate-900 rounded border ${isUser ? 'border-rose-500/60 bg-rose-950/20' : 'border-slate-800'} flex items-center justify-between">
+          <div>
+            <span class="font-bold text-white">${g.player.fullName}</span>
+            <span class="text-[10px] text-slate-400 block">${g.player.archetype} • OVR ${g.player.overall} • ${g.team}</span>
+          </div>
+          <span class="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] px-2 py-0.5 rounded font-mono font-bold">
+            Turned 13 🎓
+          </span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // 2. Populate Draft Order List (Reverse Standings)
+  const draftOrderList = document.getElementById('offseason-draft-order-list');
+  draftOrderList.innerHTML = report.draftOrderTeams.map(item => {
+    const isUser = item.team.isUser;
+    return `
+      <div class="p-2.5 bg-slate-900 rounded border ${isUser ? 'border-purple-500/60 bg-purple-950/20' : 'border-slate-800'} flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-purple-400">Pick #${item.pick}</span>
+          <span class="text-white text-xs font-semibold">${item.team.emoji} ${item.team.name}</span>
+          ${isUser ? '<span class="text-[9px] bg-purple-500 text-white px-1.5 py-0.2 rounded font-bold">YOU</span>' : ''}
+        </div>
+        <span class="text-slate-400 text-xs">${item.team.record.wins}-${item.team.record.losses}</span>
+      </div>
+    `;
+  }).join('');
+
+  modal.classList.remove('hidden');
+
+  // Close modal bindings
+  document.getElementById('btn-close-offseason').onclick = () => modal.classList.add('hidden');
+
+  // Start new season draft
+  document.getElementById('btn-start-new-season-draft').onclick = () => {
+    modal.classList.add('hidden');
+    league.startNextDynastySeason();
+    refreshAllViews();
+    switchTab('draft');
+  };
 }
 
 // App Initialization
