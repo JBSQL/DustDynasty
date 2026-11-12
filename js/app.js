@@ -994,22 +994,29 @@ function animatePlayOnField(eng, playResult, onComplete) {
       if (dotCB1) { dotCB1.style.left = `${Math.min(91, snapPercent + 17)}%`; dotCB1.style.top = `17%`; }
       if (dotCB2) { dotCB2.style.left = `${Math.min(91, snapPercent + 17)}%`; dotCB2.style.top = `83%`; }
     } else if (playResult.concept === "HB_DIVE" || playResult.concept === "OUTSIDE_SWEEP") {
+      const isSweep = playResult.concept === "OUTSIDE_SWEEP";
+      const targetY = isSweep ? 25 : 50;
+
       if (dotRB) {
         dotRB.style.left = `${endPercent}%`;
-        dotRB.style.top = playResult.concept === "OUTSIDE_SWEEP" ? `25%` : `50%`;
+        dotRB.style.top = `${targetY}%`;
       }
       if (ballEl) {
         ballEl.style.left = `${endPercent}%`;
-        ballEl.style.top = playResult.concept === "OUTSIDE_SWEEP" ? `25%` : `50%`;
+        ballEl.style.top = `${targetY}%`;
       }
+      // Defensive tackler pursues with clear 3.5% horizontal offset behind runner
       if (dotMLB) {
-        dotMLB.style.left = `${endPercent + 1}%`;
-        dotMLB.style.top = playResult.concept === "OUTSIDE_SWEEP" ? `26%` : `51%`;
+        dotMLB.style.left = `${Math.min(91, endPercent + 3.5)}%`;
+        dotMLB.style.top = `${targetY + 4}%`;
       }
     } else if (playResult.playType === "PASS" && playResult.isSack) {
       if (dotRush && dotQB) {
-        dotRush.style.left = `${endPercent}%`;
         dotQB.style.left = `${endPercent}%`;
+        dotQB.style.top = `50%`;
+        // Rusher stays offset to the right by 3%
+        dotRush.style.left = `${Math.min(91, endPercent + 3)}%`;
+        dotRush.style.top = `46%`;
       }
       if (ballEl) ballEl.style.left = `${endPercent}%`;
     }
@@ -1017,20 +1024,33 @@ function animatePlayOnField(eng, playResult, onComplete) {
     // STEP 2: PASS RELEASE & TACKLE (fires after 650ms)
     setTimeout(() => {
       if (playResult.playType === "PASS" && !playResult.isSack) {
-        // Ball flies to end position
+        const isDeep = playResult.concept === "FOUR_VERTS";
+        const recTargetY = isDeep ? 18 : 35;
+
+        // Ball flies to the receiver dot
         if (ballEl) {
           ballEl.style.left = `${endPercent}%`;
-          ballEl.style.top = playResult.concept === "FOUR_VERTS" ? `18%` : `35%`;
+          ballEl.style.top = `${recTargetY}%`;
         }
 
-        // Receiver and DB meet the ball
-        if (dotWR1 && (playResult.concept === "QUICK_SLANTS" || playResult.concept === "FOUR_VERTS")) {
+        // Receiver reaches catch point
+        if (dotWR1) {
           dotWR1.style.left = `${endPercent}%`;
-          dotWR1.style.top = playResult.concept === "FOUR_VERTS" ? `18%` : `35%`;
+          dotWR1.style.top = `${recTargetY}%`;
         }
+
+        // Defensive back closes in but maintains a clean 3.5% trailing offset and slight vertical separation
         if (dotCB1) {
-          dotCB1.style.left = `${Math.min(91, endPercent + 1)}%`;
-          dotCB1.style.top = playResult.concept === "FOUR_VERTS" ? `19%` : `36%`;
+          if (playResult.isInterception) {
+            // On interception, DB undercuts in FRONT of the receiver by 2.5%
+            dotCB1.style.left = `${Math.max(9, endPercent - 2.5)}%`;
+            dotCB1.style.top = `${recTargetY}%`;
+            if (ballEl) ballEl.style.left = `${Math.max(9, endPercent - 2.5)}%`;
+          } else {
+            // On completion or tackle, defender trails BEHIND receiver by 3.5%
+            dotCB1.style.left = `${Math.min(91, endPercent + 3.5)}%`;
+            dotCB1.style.top = `${recTargetY + 5}%`;
+          }
         }
       }
 
