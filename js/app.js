@@ -608,19 +608,28 @@ function showPostGameModal(eng) {
   document.getElementById('modal-away-team').textContent = eng.awayTeam.name;
   document.getElementById('modal-away-score').textContent = eng.score.away;
 
+  const userTeam = league.getUserTeam();
   const injuryBox = document.getElementById('modal-injuries-container');
   if (eng.postGameInjuries && eng.postGameInjuries.length > 0) {
-    injuryBox.innerHTML = eng.postGameInjuries.map(inj => `
-      <div class="p-3 bg-red-950/40 border border-red-500/50 rounded-xl flex items-center justify-between text-xs">
-        <div>
-          <span class="font-bold text-red-200">${inj.player.fullName} (${inj.team})</span>
-          <p class="text-red-300/80 text-[11px]">${inj.injuryName}</p>
+    injuryBox.innerHTML = eng.postGameInjuries.map(inj => {
+      const isUserPlayer = userTeam.roster.some(p => p.id === inj.player.id);
+      return `
+        <div class="p-3 ${isUserPlayer ? 'bg-red-950/60 border-red-500 ring-1 ring-red-500/50' : 'bg-slate-950 border-slate-800'} border rounded-xl flex items-center justify-between text-xs">
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="font-bold text-white">${inj.player.fullName}</span>
+              <span class="text-[10px] px-1.5 py-0.2 rounded font-semibold ${isUserPlayer ? 'bg-rose-500 text-white' : 'bg-slate-800 text-slate-300'}">
+                ${isUserPlayer ? 'YOUR SQUAD' : inj.team}
+              </span>
+            </div>
+            <p class="text-red-300/80 text-[11px] mt-0.5">${inj.injuryName}</p>
+          </div>
+          <span class="bg-red-500/20 text-red-400 border border-red-500/30 px-2.5 py-1 rounded-lg font-bold font-mono shrink-0">
+            Out ${inj.duration} Wk${inj.duration > 1 ? 's' : ''}
+          </span>
         </div>
-        <span class="bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-1 rounded font-bold font-mono">
-          Out ${inj.duration} Wk${inj.duration > 1 ? 's' : ''}
-        </span>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   } else {
     injuryBox.innerHTML = `
       <div class="p-3 bg-emerald-950/30 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs text-center font-semibold">
