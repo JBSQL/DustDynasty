@@ -52,7 +52,7 @@
           <span>🏈</span> Game Day
         </button>
         <button data-tab="roster" class="nav-tab px-4 py-2.5 border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition flex items-center gap-2">
-          <span>📋</span> Roster & Ironman 5
+          <span>📋</span> Roster & Ironman 5 <span id="injury-tab-badge" class="hidden text-xs bg-red-600 text-white px-1.5 py-0.2 rounded-full font-bold">0 Injured</span>
         </button>
         <button data-tab="draft" class="nav-tab px-4 py-2.5 border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition flex items-center gap-2">
           <span>🎯</span> Draft Room <span id="draft-tab-badge" class="hidden text-xs bg-amber-500 text-slate-950 px-1.5 py-0.2 rounded-full font-bold">Live</span>
@@ -83,6 +83,20 @@
         </div>
         <button id="btn-goto-draft" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm shadow-md transition">
           Enter Draft Room →
+        </button>
+      </div>
+
+      <!-- Injury Alert Banner in Owner's Box -->
+      <div id="injury-alert-banner" class="hidden bg-gradient-to-r from-red-950/60 via-red-900/40 to-red-950/60 border border-red-500/50 p-4 rounded-xl flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">🚑</span>
+          <div>
+            <h3 class="font-bold text-red-200" id="injury-alert-title">Trainer's Room Alert</h3>
+            <p class="text-xs text-red-300/80" id="injury-alert-text">Player injuries require your attention.</p>
+          </div>
+        </div>
+        <button id="btn-goto-injury-roster" class="bg-red-600 hover:bg-red-500 text-white font-bold px-4 py-2 rounded-lg text-xs shadow-md transition">
+          View Injured List →
         </button>
       </div>
 
@@ -356,12 +370,25 @@
       <div class="pt-4 border-t border-slate-800">
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <span>🛋️</span> Bench & Reserves (<span id="bench-count">5</span> / 5)
+            <span>🛋️</span> Healthy Bench & Reserves (<span id="bench-count">5</span> / 5)
           </h3>
           <span class="text-xs text-slate-400">Substitute healthy bench players into the starting 5 before Game Day</span>
         </div>
         <div id="roster-bench-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <!-- 5 Bench Cards rendered here -->
+          <!-- Bench Cards rendered here -->
+        </div>
+      </div>
+
+      <!-- Injured Reserve Section -->
+      <div id="roster-ir-section" class="pt-4 border-t border-slate-800 hidden">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-xs font-bold text-red-400 uppercase tracking-wider flex items-center gap-1.5">
+            <span>🚑</span> Injured List / Trainer's Room (<span id="ir-count">0</span>)
+          </h3>
+          <span class="text-xs text-red-300/80">Players ruled out by team trainers. Ineligible to play until fully cleared.</span>
+        </div>
+        <div id="roster-ir-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <!-- Injured Cards rendered here -->
         </div>
       </div>
     </section>

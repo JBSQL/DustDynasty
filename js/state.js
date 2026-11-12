@@ -198,7 +198,7 @@ export class LeagueState {
     if (!weekData) return;
 
     const matchup = weekData.matchups.find(m => m.id === matchupId);
-    if (!matchup) return;
+    if (!matchup || matchup.played) return;
 
     matchup.homeScore = homeScore;
     matchup.awayScore = awayScore;

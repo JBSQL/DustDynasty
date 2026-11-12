@@ -21,11 +21,11 @@ function getRatingBadge(val) {
 function renderPlayerCard(player, isStarter = false, canSwap = false) {
   const isInjured = player.injuryWeeksRemaining > 0;
   return `
-    <div class="bg-slate-900 border ${isInjured ? 'border-red-600/60 bg-red-950/20' : isStarter ? 'border-emerald-500/50 bg-emerald-950/10' : 'border-slate-800'} rounded-xl p-3 shadow flex flex-col justify-between relative">
+    <div class="bg-slate-900 border ${isInjured ? 'border-red-600/70 bg-red-950/30' : isStarter ? 'border-emerald-500/50 bg-emerald-950/10' : 'border-slate-800'} rounded-xl p-3 shadow flex flex-col justify-between relative">
       <div>
         <div class="flex items-center justify-between mb-1.5">
-          <span class="text-[10px] font-bold uppercase tracking-wider ${isStarter ? 'text-emerald-400' : 'text-slate-400'}">${player.archetype}</span>
-          <span class="text-xs font-black font-mono ${player.overall >= 80 ? 'text-emerald-400' : 'text-amber-400'}">OVR ${player.overall}</span>
+          <span class="text-[10px] font-bold uppercase tracking-wider ${isInjured ? 'text-red-400' : isStarter ? 'text-emerald-400' : 'text-slate-400'}">${player.archetype}</span>
+          <span class="text-xs font-black font-mono ${isInjured ? 'text-red-400' : player.overall >= 80 ? 'text-emerald-400' : 'text-amber-400'}">OVR ${player.overall}</span>
         </div>
         <h4 class="text-sm font-bold text-white truncate" title="${player.fullName}">${player.fullName}</h4>
         <div class="text-[11px] text-slate-400 flex gap-2 mt-0.5">
@@ -36,9 +36,12 @@ function renderPlayerCard(player, isStarter = false, canSwap = false) {
 
         <!-- Injury Alert if any -->
         ${isInjured ? `
-          <div class="mt-2 bg-red-900/40 border border-red-500/50 text-red-200 text-[10px] p-1.5 rounded font-semibold flex items-center gap-1">
-            <span>🚨</span>
-            <span class="truncate">${player.injuryDescription} (${player.injuryWeeksRemaining} wk${player.injuryWeeksRemaining > 1 ? 's' : ''})</span>
+          <div class="mt-2 bg-red-900/50 border border-red-500/70 text-red-200 text-[10px] p-2 rounded-lg font-bold space-y-0.5">
+            <div class="flex items-center justify-between">
+              <span class="flex items-center gap-1 text-red-300"><span>🚑</span> INJURED RESERVE</span>
+              <span class="bg-red-950 text-red-200 px-1.5 py-0.2 rounded font-mono">${player.injuryWeeksRemaining} Wk${player.injuryWeeksRemaining > 1 ? 's' : ''} Out</span>
+            </div>
+            <p class="text-[10px] text-red-300/90 font-normal italic truncate">${player.injuryDescription}</p>
           </div>
         ` : ''}
 
@@ -55,8 +58,8 @@ function renderPlayerCard(player, isStarter = false, canSwap = false) {
       <!-- Action Button -->
       ${canSwap ? `
         <div class="mt-3 pt-2 border-t border-slate-800 flex justify-end">
-          <button data-action="toggle-starter" data-player-id="${player.id}" ${isInjured ? 'disabled' : ''} class="w-full text-xs font-bold py-1 px-2 rounded ${isStarter ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : isInjured ? 'bg-slate-800/50 text-slate-600 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-500 text-white'} transition">
-            ${isStarter ? 'Move to Bench' : isInjured ? 'Injured (Locked)' : 'Promote to Starter'}
+          <button data-action="toggle-starter" data-player-id="${player.id}" ${isInjured ? 'disabled' : ''} class="w-full text-xs font-bold py-1 px-2 rounded ${isStarter ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : isInjured ? 'bg-red-950/40 text-red-400 border border-red-900/50 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-500 text-white'} transition">
+            ${isStarter ? 'Move to Bench' : isInjured ? 'Out with Injury' : 'Promote to Starter'}
           </button>
         </div>
       ` : ''}
@@ -75,6 +78,7 @@ function initNavigation() {
   });
 
   document.getElementById('btn-goto-draft')?.addEventListener('click', () => switchTab('draft'));
+  document.getElementById('btn-goto-injury-roster')?.addEventListener('click', () => switchTab('roster'));
   document.querySelector('[data-tab="coaches"]')?.addEventListener('click', () => switchTab('coaches'));
 
   document.getElementById('btn-reset-season').addEventListener('click', () => {
@@ -147,6 +151,26 @@ function renderOwnersBox() {
     tradeBadge.classList.remove('hidden');
   } else {
     tradeBadge.classList.add('hidden');
+  }
+
+  // Injury Banner and Navigation Badge
+  const userInjured = userTeam.roster.filter(p => p.injuryWeeksRemaining > 0);
+  const injuryBanner = document.getElementById('injury-alert-banner');
+  const injuryTabBadge = document.getElementById('injury-tab-badge');
+
+  if (userInjured.length > 0) {
+    if (injuryBanner) {
+      injuryBanner.classList.remove('hidden');
+      document.getElementById('injury-alert-title').textContent = `Trainer's Room Alert: ${userInjured.length} Player${userInjured.length > 1 ? 's' : ''} Sidelined`;
+      document.getElementById('injury-alert-text').textContent = userInjured.map(p => `${p.shortName} (${p.injuryDescription}, ${p.injuryWeeksRemaining}w out)`).join(" • ");
+    }
+    if (injuryTabBadge) {
+      injuryTabBadge.textContent = `${userInjured.length} Injured`;
+      injuryTabBadge.classList.remove('hidden');
+    }
+  } else {
+    if (injuryBanner) injuryBanner.classList.add('hidden');
+    if (injuryTabBadge) injuryTabBadge.classList.add('hidden');
   }
 
   // Next Matchup
@@ -239,20 +263,43 @@ function renderRosterView() {
   const userTeam = league.getUserTeam();
   const startersGrid = document.getElementById('roster-starters-grid');
   const benchGrid = document.getElementById('roster-bench-grid');
+  const irSection = document.getElementById('roster-ir-section');
+  const irGrid = document.getElementById('roster-ir-grid');
 
   const starters = userTeam.starters;
-  const bench = userTeam.roster.filter(p => !starters.some(s => s.id === p.id));
+  const healthyBench = userTeam.roster.filter(p => !starters.some(s => s.id === p.id) && p.injuryWeeksRemaining <= 0);
+  const injuredReserve = userTeam.roster.filter(p => p.injuryWeeksRemaining > 0);
 
   document.getElementById('starters-count').textContent = starters.length;
-  document.getElementById('bench-count').textContent = bench.length;
+  document.getElementById('bench-count').textContent = healthyBench.length;
 
   startersGrid.innerHTML = starters.length > 0
     ? starters.map(p => renderPlayerCard(p, true, true)).join('')
     : '<div class="col-span-5 text-center py-6 text-slate-500 italic">No starters locked in. Click Auto-Set Best 5 or promote bench kids!</div>';
 
-  benchGrid.innerHTML = bench.length > 0
-    ? bench.map(p => renderPlayerCard(p, false, true)).join('')
-    : '<div class="col-span-5 text-center py-6 text-slate-500 italic">Empty bench. Complete the draft to fill your 10-kid squad!</div>';
+  benchGrid.innerHTML = healthyBench.length > 0
+    ? healthyBench.map(p => renderPlayerCard(p, false, true)).join('')
+    : '<div class="col-span-5 text-center py-6 text-slate-500 italic">No healthy bench reserves available.</div>';
+
+  // Render Injured Reserve Section
+  if (injuredReserve.length > 0) {
+    irSection?.classList.remove('hidden');
+    document.getElementById('ir-count').textContent = injuredReserve.length;
+    irGrid.innerHTML = injuredReserve.map(p => renderPlayerCard(p, false, false)).join('');
+  } else {
+    irSection?.classList.add('hidden');
+  }
+
+  // Update nav tab badge
+  const injuryTabBadge = document.getElementById('injury-tab-badge');
+  if (injuryTabBadge) {
+    if (injuredReserve.length > 0) {
+      injuryTabBadge.textContent = `${injuredReserve.length} Injured`;
+      injuryTabBadge.classList.remove('hidden');
+    } else {
+      injuryTabBadge.classList.add('hidden');
+    }
+  }
 
   // Attach Starter/Bench Toggle listeners
   document.querySelectorAll('[data-action="toggle-starter"]').forEach(btn => {
