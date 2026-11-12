@@ -310,6 +310,10 @@ export class GameEngine {
     let desc = "";
     let isFumble = false;
 
+    // Determine specific run concept
+    const concept = isQbKeeper ? "QB_KEEPER" : (Math.random() < 0.5 ? "HB_DIVE" : "OUTSIDE_SWEEP");
+    const defConcept = isBlitz ? "BANZAI_BLITZ" : "STACK_BOX";
+
     if (diff < -20) {
       // Stuffed behind line of scrimmage
       yards = -randomInt(1, 3);
@@ -344,6 +348,9 @@ export class GameEngine {
 
     return {
       playType: "RUN",
+      concept,
+      defConcept,
+      startYardLine: this.yardLine,
       yardsGained: yards,
       description: desc,
       ballCarrier: runner,
@@ -365,6 +372,8 @@ export class GameEngine {
     const passRushScore = rusher.effectiveSpeed * 0.5 + rusher.effectiveTackling * 0.5 + (isBlitz ? 15 : 0) + randomFloat(-10, 15);
     const passProScore = off.center.effectiveTackling * 0.7 + off.center.weight * 0.3 + randomFloat(-10, 15);
 
+    const defConcept = isBlitz ? "BANZAI_BLITZ" : (Math.random() < 0.5 ? "MAN_COVERAGE" : "COVER_2_ZONE");
+
     if (passRushScore - passProScore > 26) {
       // SACK!
       const sackYards = -randomInt(3, 7);
@@ -378,10 +387,14 @@ export class GameEngine {
 
       return {
         playType: "PASS",
+        concept: "DROPBACK_PASS",
+        defConcept,
+        startYardLine: this.yardLine,
         yardsGained: sackYards,
         description: `SACK! ${rusher.shortName} screams off the edge and crushes ${qb.shortName} before he can release the ball (${sackYards} yds)!`,
         ballCarrier: qb,
         tackler: rusher,
+        targetReceiver: targetWR,
         isSack: true,
         isComplete: false,
         isTurnover: false
@@ -391,13 +404,16 @@ export class GameEngine {
     // Determine target depth (strictly capped at 30 yards maximum)
     let depthType = "SHORT";
     let targetDistance = randomInt(4, 9);
+    let concept = Math.random() < 0.6 ? "QUICK_SLANTS" : "WR_SCREEN";
     const deepRoll = Math.random();
 
     if (deepRoll < deepBias * 0.45) {
       depthType = "DEEP";
+      concept = "FOUR_VERTS";
       targetDistance = Math.min(MAX_PASS_DISTANCE, randomInt(18, 30));
     } else if (deepRoll < (deepBias * 0.75 + 0.35)) {
       depthType = "MEDIUM";
+      concept = "OUT_ROUTES";
       targetDistance = randomInt(10, 17);
     }
 
@@ -429,10 +445,14 @@ export class GameEngine {
       dbBox.defInt++;
       return {
         playType: "PASS",
+        concept,
+        defConcept,
+        startYardLine: this.yardLine,
         yardsGained: 0,
         description: `INTERCEPTED! ${qb.shortName} forced a dangerous throw into double coverage and ${coverageDB.shortName} picks it off!`,
         ballCarrier: qb,
         tackler: coverageDB,
+        targetReceiver: targetWR,
         isTurnover: true,
         isInterception: true,
         isComplete: false
@@ -449,9 +469,13 @@ export class GameEngine {
       }
       return {
         playType: "PASS",
+        concept,
+        defConcept,
+        startYardLine: this.yardLine,
         yardsGained: 0,
         description: `Incomplete. ${qb.shortName}'s pass intended for ${targetWR.shortName} was ${reason}.`,
         ballCarrier: qb,
+        targetReceiver: targetWR,
         isTurnover: false,
         isComplete: false
       };
@@ -478,13 +502,20 @@ export class GameEngine {
 
     return {
       playType: "PASS",
+      concept,
+      defConcept,
+      startYardLine: this.yardLine,
       yardsGained: totalGain,
+      targetDistance,
+      yac,
       description: desc,
-      passer: qb,
-      receiver: targetWR,
+      ballCarrier: targetWR,
       tackler: coverageDB,
+      targetReceiver: targetWR,
+      isTurnover: false,
       isComplete: true,
-      isTurnover: false
+      passer: qb,
+      receiver: targetWR
     };
   }
 

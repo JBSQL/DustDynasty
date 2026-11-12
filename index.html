@@ -297,6 +297,25 @@
         <div id="field-ball" class="football-ball" style="left: 10%;">
           🏈
         </div>
+
+        <!-- Chalkboard Routes Overlay -->
+        <svg id="field-chalkboard-svg" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arrow-offense" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 8 5 L 0 9 z" fill="#38bdf8" />
+            </marker>
+            <marker id="arrow-defense" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 8 5 L 0 9 z" fill="#f87171" />
+            </marker>
+            <marker id="arrow-run" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 8 5 L 0 9 z" fill="#facc15" />
+            </marker>
+          </defs>
+          <g id="field-chalk-routes"></g>
+        </svg>
+
+        <!-- Dynamic 10 Player Dots Container -->
+        <div id="field-players-container"></div>
       </div>
 
       <!-- Simulation Play Controls & Callout -->
@@ -306,7 +325,11 @@
             📢
           </div>
           <div>
-            <div class="text-xs text-slate-400">Play Call From The Sideline:</div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-slate-400">Play Call From The Sideline:</span>
+              <span id="sim-play-concept-badge" class="hidden text-[10px] font-bold px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-700/50"></span>
+              <span id="sim-def-concept-badge" class="hidden text-[10px] font-bold px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-700/50"></span>
+            </div>
             <div class="text-sm font-semibold text-slate-200" id="sim-coach-call">Coach Annie calls a play...</div>
           </div>
         </div>
