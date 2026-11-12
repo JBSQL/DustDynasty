@@ -93,7 +93,17 @@ function initNavigation() {
   });
 }
 
+let aiDraftTimer = null;
+
+function clearAIDraftTimer() {
+  if (aiDraftTimer) {
+    clearTimeout(aiDraftTimer);
+    aiDraftTimer = null;
+  }
+}
+
 function switchTab(tabId) {
+  clearAIDraftTimer();
   document.querySelectorAll('.tab-content').forEach(section => {
     section.classList.add('hidden');
   });
@@ -363,25 +373,140 @@ function toggleStarter(playerId) {
 }
 
 // -------------------------------------------------------------
-// TAB 3: DRAFT ROOM (10-Round Snake Draft)
+// TAB 3: DRAFT ROOM (Inaugural Snake Draft & Dynasty Rookie Drafts)
 // -------------------------------------------------------------
 function renderDraftRoom() {
+  clearAIDraftTimer();
   const turn = league.getCurrentDraftTurn();
+  const draftTitle = document.getElementById('draft-header-title');
   const draftPill = document.getElementById('draft-status-pill');
   const draftTurnLabel = document.getElementById('draft-turn-label');
   const prospectCount = document.getElementById('prospect-count');
+  const banner = document.getElementById('draft-status-banner');
+
+  if (draftTitle) {
+    draftTitle.textContent = league.seasonYear === 1
+      ? "10-ROUND INAUGURAL DRAFT"
+      : `SEASON ${league.seasonYear} ROOKIE DRAFT`;
+  }
 
   prospectCount.textContent = league.prospectPool.length;
 
   if (league.draftCompleted || !turn) {
     draftPill.textContent = "Draft Complete";
-    draftPill.className = "text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-bold";
-    draftTurnLabel.textContent = "All 10 rounds complete! Rosters are locked.";
+    draftPill.className = "text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-lg font-bold";
+    draftTurnLabel.innerHTML = `All picks complete! Roster and Ironman 5 starters are locked in.`;
     document.getElementById('btn-auto-draft-user').disabled = true;
     document.getElementById('btn-auto-draft-all').disabled = true;
+
+    if (banner) {
+      banner.className = "rounded-xl p-4 border border-emerald-500/40 bg-emerald-950/40 flex flex-wrap items-center justify-between gap-3";
+      banner.innerHTML = `
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">🎉</span>
+          <div>
+            <h4 class="text-sm font-bold text-white">Draft Complete for Season ${league.seasonYear}!</h4>
+            <p class="text-xs text-emerald-300/80">All 6 neighborhood squads have locked their 10-player rosters and Ironman 5 starters.</p>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button id="btn-banner-go-roster" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-3.5 py-2 rounded-lg border border-slate-700 transition">
+            View Starting 5 & Roster
+          </button>
+          <button id="btn-banner-go-schedule" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-lg shadow transition">
+            Proceed to Week 1 Kickoff →
+          </button>
+        </div>
+      `;
+      banner.classList.remove('hidden');
+      document.getElementById('btn-banner-go-roster')?.addEventListener('click', () => switchTab('roster'));
+      document.getElementById('btn-banner-go-schedule')?.addEventListener('click', () => switchTab('owners-box'));
+    }
+
+    renderProspectGrid();
+    return;
+  }
+
+  document.getElementById('btn-auto-draft-user').disabled = false;
+  document.getElementById('btn-auto-draft-all').disabled = false;
+
+  draftPill.textContent = `Round ${turn.round} • Pick ${turn.pickNumber} / ${league.draftOrder.length}`;
+
+  const nextUserPick = league.getUserNextPick();
+  const userHasFuturePick = nextUserPick !== null;
+
+  if (turn.isUserTurn) {
+    clearAIDraftTimer();
+    draftTurnLabel.innerHTML = `On The Clock: <span class="font-bold text-rose-400">${turn.team.name}</span> <span class="text-xs bg-rose-500 text-white px-2 py-0.5 rounded font-bold ml-2 animate-pulse">🚨 YOUR TURN ON THE CLOCK</span>`;
+
+    if (banner) {
+      banner.className = "rounded-xl p-3.5 border border-rose-500/50 bg-rose-950/30 flex items-center justify-between gap-3";
+      banner.innerHTML = `
+        <div class="flex items-center gap-2.5">
+          <span class="text-xl">🎯</span>
+          <div>
+            <span class="text-xs font-bold text-white block">You are On the Clock! (Pick #${turn.pickNumber})</span>
+            <span class="text-[11px] text-slate-400">Choose a prospect below or sort by attribute to reinforce your squad.</span>
+          </div>
+        </div>
+        <span class="text-xs text-rose-300 font-mono font-bold">Pick #${turn.pickNumber}</span>
+      `;
+      banner.classList.remove('hidden');
+    }
   } else {
-    draftPill.textContent = `Round ${turn.round} • Pick ${turn.pickNumber} / ${league.draftOrder.length}`;
-    draftTurnLabel.innerHTML = `On The Clock: <span class="font-bold text-white">${turn.team.name}</span> ${turn.isUserTurn ? '<span class="text-xs bg-rose-500 text-white px-2 py-0.5 rounded font-bold ml-2">YOUR TURN</span>' : ''}`;
+    // AI turn
+    const userNotice = userHasFuturePick
+      ? `(Your next pick: #${nextUserPick})`
+      : `(Your 10-player squad is full!)`;
+    draftTurnLabel.innerHTML = `On The Clock: <span class="font-bold text-white">${turn.team.name}</span> <span class="text-xs text-amber-300 ml-2 font-mono">${userNotice}</span>`;
+
+    if (banner) {
+      banner.className = "rounded-xl p-3 border border-amber-500/40 bg-amber-950/30 flex flex-wrap items-center justify-between gap-3";
+      banner.innerHTML = `
+        <div class="flex items-center gap-2.5">
+          <span class="animate-spin text-lg">⏳</span>
+          <div>
+            <span class="text-xs font-bold text-amber-300 block">${turn.team.name} are on the clock...</span>
+            <span class="text-[11px] text-slate-400">${userHasFuturePick ? `Drafting automatically. Your pick is #${nextUserPick}.` : 'Your squad has all 10 roster spots filled.'}</span>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          ${userHasFuturePick ? `
+            <button id="btn-banner-sim-user" class="bg-amber-600 hover:bg-amber-500 text-slate-950 text-xs font-bold px-3 py-1.5 rounded-lg transition shadow">
+              ⚡ Skip to My Turn (Pick #${nextUserPick})
+            </button>
+          ` : `
+            <button id="btn-banner-sim-all" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition shadow">
+              ⚡ Finish Remaining AI Picks
+            </button>
+          `}
+        </div>
+      `;
+      banner.classList.remove('hidden');
+      document.getElementById('btn-banner-sim-user')?.addEventListener('click', () => {
+        clearAIDraftTimer();
+        league.autoDraftUntilUserOrEnd();
+        league.save();
+        renderDraftRoom();
+        renderOwnersBox();
+      });
+      document.getElementById('btn-banner-sim-all')?.addEventListener('click', () => {
+        clearAIDraftTimer();
+        league.autoDraftAll();
+        league.save();
+        renderDraftRoom();
+        renderOwnersBox();
+      });
+    }
+
+    // Auto-advance this AI pick after 700ms so the user watches the draft unfold live
+    aiDraftTimer = setTimeout(() => {
+      const pick = league.advanceOneAIPick();
+      if (pick) {
+        renderDraftRoom();
+        renderOwnersBox();
+      }
+    }, 700);
   }
 
   // Render prospect cards
@@ -389,6 +514,7 @@ function renderDraftRoom() {
 
   // Auto Draft Controls
   document.getElementById('btn-auto-draft-user').onclick = () => {
+    clearAIDraftTimer();
     league.autoDraftUntilUserOrEnd();
     league.save();
     renderDraftRoom();
@@ -396,6 +522,7 @@ function renderDraftRoom() {
   };
 
   document.getElementById('btn-auto-draft-all').onclick = () => {
+    clearAIDraftTimer();
     league.autoDraftAll();
     league.save();
     renderDraftRoom();
@@ -454,10 +581,9 @@ function renderProspectGrid() {
   // Draft player click
   document.querySelectorAll('[data-action="draft-player"]').forEach(btn => {
     btn.onclick = (e) => {
+      clearAIDraftTimer();
       const pId = e.target.dataset.playerId;
       league.makeDraftPick(pId);
-      // Let AI make picks until next user turn or finish
-      league.autoDraftUntilUserOrEnd();
       league.save();
       renderDraftRoom();
       renderOwnersBox();
@@ -1021,7 +1147,12 @@ function openOffseasonModal() {
     modal.classList.add('hidden');
     league.startNextDynastySeason();
     refreshAllViews();
-    switchTab('draft');
+    if (league.draftCompleted) {
+      alert(`Season ${league.seasonYear} Kickoff! All squads retained full rosters. Ready for Week 1!`);
+      switchTab('owners-box');
+    } else {
+      switchTab('draft');
+    }
   };
 }
 

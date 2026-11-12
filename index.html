@@ -406,7 +406,7 @@
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-wrap items-center justify-between gap-4">
         <div>
           <div class="flex items-center gap-2">
-            <h2 class="text-lg font-black text-white font-arcade">10-ROUND SNAKE DRAFT</h2>
+            <h2 id="draft-header-title" class="text-lg font-black text-white font-arcade">10-ROUND SNAKE DRAFT</h2>
             <span id="draft-status-pill" class="text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded font-bold">Pick 1 of 60</span>
           </div>
           <p class="text-xs text-slate-400 mt-1" id="draft-turn-label">On the Clock: Cul-de-sac Crushers</p>
@@ -420,6 +420,11 @@
             ⚡ Complete Full Draft
           </button>
         </div>
+      </div>
+
+      <!-- Dynamic Draft Status / Ticker Banner -->
+      <div id="draft-status-banner" class="hidden rounded-xl p-3 border transition flex items-center justify-between gap-4">
+        <!-- Rendered dynamically in app.js -->
       </div>
 
       <!-- Prospect Pool Filter & Grid -->

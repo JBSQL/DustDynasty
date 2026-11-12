@@ -39,7 +39,7 @@ export class LeagueState {
     this.draftOrder = [];
     if (customOrder) {
       // Dynasty Rookie Draft: Each team drafts up to fill their 10-man roster
-      const maxNeeded = Math.max(...this.teams.map(t => Math.max(0, 10 - t.roster.length)), 1);
+      const maxNeeded = Math.max(...this.teams.map(t => Math.max(0, 10 - t.roster.length)), 0);
       // Track projected roster counts as picks are slotted
       const projectedCount = {};
       this.teams.forEach(t => projectedCount[t.id] = t.roster.length);
@@ -52,6 +52,10 @@ export class LeagueState {
             projectedCount[team.id]++;
           }
         });
+      }
+
+      if (this.draftOrder.length === 0) {
+        this.finishDraft();
       }
     } else {
       // Inaugural Draft: 10 rounds, 6 teams = 60 picks
@@ -76,6 +80,14 @@ export class LeagueState {
     };
   }
 
+  getUserNextPick() {
+    const userTeam = this.getUserTeam();
+    const futurePicks = this.draftOrder.slice(this.draftPickIndex);
+    const userPickIdx = futurePicks.findIndex(p => p.teamId === userTeam.id);
+    if (userPickIdx === -1) return null;
+    return this.draftPickIndex + userPickIdx + 1;
+  }
+
   makeDraftPick(playerId) {
     const turn = this.getCurrentDraftTurn();
     if (!turn) return null;
@@ -98,17 +110,33 @@ export class LeagueState {
     return { player, team: turn.team, pickNumber: turn.pickNumber, round: turn.round };
   }
 
+  advanceOneAIPick() {
+    if (this.draftCompleted) return null;
+    const turn = this.getCurrentDraftTurn();
+    if (!turn || turn.isUserTurn) return null;
+
+    const bestPick = aiChooseDraftPick(turn.team, this.prospectPool);
+    if (!bestPick) return null;
+
+    const result = this.makeDraftPick(bestPick.id);
+    this.save();
+    return result;
+  }
+
   autoDraftUntilUserOrEnd() {
     const picksMade = [];
     while (this.draftPickIndex < this.draftOrder.length) {
       const turn = this.getCurrentDraftTurn();
-      if (turn.isUserTurn) break; // pause for human user
+      if (!turn || turn.isUserTurn) break; // pause for human user
 
       const bestPick = aiChooseDraftPick(turn.team, this.prospectPool);
       if (!bestPick) break;
 
       const pickResult = this.makeDraftPick(bestPick.id);
       picksMade.push(pickResult);
+    }
+    if (this.draftPickIndex >= this.draftOrder.length) {
+      this.finishDraft();
     }
     return picksMade;
   }
@@ -117,6 +145,7 @@ export class LeagueState {
     const picksMade = [];
     while (this.draftPickIndex < this.draftOrder.length) {
       const turn = this.getCurrentDraftTurn();
+      if (!turn) break;
       const bestPick = turn.isUserTurn
         ? this.prospectPool[0] // user auto-drafts top overall
         : aiChooseDraftPick(turn.team, this.prospectPool);
@@ -124,6 +153,9 @@ export class LeagueState {
       if (!bestPick) break;
       const pickResult = this.makeDraftPick(bestPick.id);
       picksMade.push(pickResult);
+    }
+    if (this.draftPickIndex >= this.draftOrder.length) {
+      this.finishDraft();
     }
     return picksMade;
   }
@@ -134,7 +166,10 @@ export class LeagueState {
     this.teams.forEach(team => {
       autoSetStarters(team);
     });
-    this.leagueNews.unshift("The 10-Round Draft is officially complete! GMs are locking in their Ironman 5 starters for Week 1.");
+    const msg = this.seasonYear === 1
+      ? "The 10-Round Inaugural Draft is officially complete! GMs are locking in their Ironman 5 starters for Week 1."
+      : `The Season ${this.seasonYear} Rookie Draft is officially complete! All squads have set their 10-kid rosters for Week 1.`;
+    this.leagueNews.unshift(msg);
     this.save();
   }
 
@@ -436,10 +471,12 @@ export class LeagueState {
     this.initDraft(reverseOrder);
 
     // 6. Generate fresh 10-week schedule + Week 11 Championship Bowls
-    this.generateSchedule();
-
-    const topPickTeam = reverseOrder[0];
-    this.leagueNews.unshift(`SEASON ${this.seasonYear} KICKOFF: The park lot opens for a new campaign! ${graduates.length} kids aged out or moved away. ${topPickTeam.name} holds the #1 overall pick!`);
+    if (this.draftOrder.length === 0) {
+      this.leagueNews.unshift(`SEASON ${this.seasonYear} KICKOFF: All squads retain full rosters! No draft needed, straight to Week 1 kickoff!`);
+    } else {
+      const topPickTeam = this.teams.find(t => t.id === this.draftOrder[0].teamId) || reverseOrder[0];
+      this.leagueNews.unshift(`SEASON ${this.seasonYear} KICKOFF: The park lot opens for a new campaign! ${graduates.length} kids aged out or moved away. ${topPickTeam.name} holds the #1 overall pick!`);
+    }
     this.save();
   }
 
@@ -474,6 +511,10 @@ export class LeagueState {
       const parsed = JSON.parse(data);
       const state = new LeagueState();
       Object.assign(state, parsed);
+      // Self-healing: if draft pick index reached the end or draftOrder was empty, mark draftCompleted
+      if (!state.draftCompleted && (!state.draftOrder || state.draftOrder.length === 0 || state.draftPickIndex >= state.draftOrder.length)) {
+        state.draftCompleted = true;
+      }
       return state;
     } catch (e) {
       console.warn("Storage load failed", e);
