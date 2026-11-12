@@ -692,13 +692,31 @@ function updateGameDayView() {
   document.getElementById('sim-quarter-clock').textContent = `Q${eng.quarter} • ${mins}:${secs}`;
 
   const offTeam = eng.getOffenseTeam();
+  const defTeam = eng.getDefenseTeam();
   const nextPlayBtn = document.getElementById('btn-step-play');
+  const downDistEl = document.getElementById('sim-down-dist');
+
+  // Format field position: OWN X vs OPP Y
+  const yard = eng.yardLine;
+  const fieldSpotDesc = yard <= 25 ? `OWN ${yard}` : `OPP ${50 - yard}`;
+  const targetDesc = eng.firstDownMarker === 25 ? "Line to Gain: MIDFIELD (25)" : "Line to Gain: GOAL LINE (50)";
 
   if (eng.pendingPAT) {
-    document.getElementById('sim-down-dist').textContent = `🏈 EXTRA POINT ATTEMPT (${offTeam.short})`;
+    if (downDistEl) {
+      downDistEl.innerHTML = `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded font-mono font-black">🎯 EXTRA POINT</span> <span class="text-slate-300">from the 5-yd line</span>`;
+    }
     if (nextPlayBtn) nextPlayBtn.innerHTML = `Play Extra Point 🎯`;
   } else {
-    document.getElementById('sim-down-dist').textContent = `${eng.down}${getOrdinal(eng.down)} & ${eng.yardsToGain} at ${eng.yardLine}-yd line (${offTeam.short})`;
+    const downColor = eng.down === 4 ? "text-rose-400 bg-rose-950/60 border-rose-600/60" : (eng.down === 3 ? "text-amber-400 bg-amber-950/60 border-amber-600/60" : "text-emerald-400 bg-emerald-950/60 border-emerald-600/60");
+    if (downDistEl) {
+      downDistEl.innerHTML = `
+        <span class="px-2 py-0.5 rounded border font-mono font-black ${downColor}">
+          ${eng.down}${getOrdinal(eng.down)} & ${eng.yardsToGain}
+        </span>
+        <span class="text-slate-300 font-semibold ml-1.5">at ${fieldSpotDesc}</span>
+        <span class="text-[10px] text-slate-400 font-normal ml-1">(${targetDesc})</span>
+      `;
+    }
     if (nextPlayBtn) nextPlayBtn.innerHTML = `Next Play ▶`;
   }
 
@@ -717,7 +735,7 @@ function updateGameDayView() {
   // Possession Bar & Direction Indicator
   const isHomePoss = eng.possession === "home";
   const possTeam = isHomePoss ? eng.homeTeam : eng.awayTeam;
-  const defTeam = isHomePoss ? eng.awayTeam : eng.homeTeam;
+  const defendingTeam = isHomePoss ? eng.awayTeam : eng.homeTeam;
   const possTeamNameEl = document.getElementById('sim-possession-team-name');
   const possArrowEl = document.getElementById('sim-possession-arrow');
   const targetDescEl = document.getElementById('sim-field-target-desc');
@@ -734,8 +752,8 @@ function updateGameDayView() {
   }
   if (targetDescEl) {
     targetDescEl.textContent = isHomePoss 
-      ? `Attacking: Right Endzone (${defTeam.short})`
-      : `Attacking: Left Endzone (${defTeam.short})`;
+      ? `Attacking: Right Endzone (${defendingTeam.short})`
+      : `Attacking: Left Endzone (${defendingTeam.short})`;
   }
 
   // Visual Field Update
@@ -780,14 +798,62 @@ function updateGameDayView() {
 
   document.getElementById('sim-coach-call').textContent = latestPlay ? latestPlay.description : `${coach.name} dials up the game plan...`;
 
-  // Play Ticker
+  // Play Ticker with rich possession & down badges
   const ticker = document.getElementById('sim-play-ticker');
-  ticker.innerHTML = eng.playLog.slice(0, 30).map(p => `
-    <div class="p-2 rounded-lg bg-slate-950/70 border border-slate-800 flex items-start gap-2">
-      <span class="font-mono text-amber-400 font-bold shrink-0">[Q${p.quarter || '1'}]</span>
-      <span class="text-slate-200">${p.description}</span>
-    </div>
-  `).join('');
+  ticker.innerHTML = eng.playLog.slice(0, 35).map(p => {
+    // Resolve team badge info
+    const offTeam = p.offenseTeam || (p.possession === "home" ? eng.homeTeam : eng.awayTeam);
+    const teamColor = offTeam.color || "#0284c7";
+    const teamShort = offTeam.short || "TEAM";
+    const teamEmoji = offTeam.emoji || "🏈";
+
+    // Down & Distance or PAT pill
+    let downBadge = "";
+    if (p.type === "PAT" || p.playType === "PAT") {
+      const isGood = p.converted;
+      downBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${isGood ? 'bg-emerald-950 text-emerald-300 border border-emerald-600/50' : 'bg-rose-950 text-rose-300 border border-rose-600/50'}">PAT (${p.points ? '+' + p.points : 'MISSED'})</span>`;
+    } else if (p.down) {
+      const downStr = `${p.down}${getOrdinal(p.down)} & ${p.yardsToGain || p.distance || 0}`;
+      const downColor = p.down === 4 ? "bg-rose-950/80 text-rose-300 border-rose-700/60" : (p.down === 3 ? "bg-amber-950/80 text-amber-300 border-amber-700/60" : "bg-slate-800 text-slate-300 border-slate-700");
+      downBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border ${downColor}">${downStr}</span>`;
+    }
+
+    // Yardage indicator
+    let yardagePill = "";
+    if (p.isTouchdown) {
+      yardagePill = `<span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-black bg-yellow-500 text-slate-950 shadow-sm animate-pulse">TOUCHDOWN</span>`;
+    } else if (p.isTurnover || p.isInterception || p.isFumble) {
+      yardagePill = `<span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-black bg-rose-600 text-white shadow-sm">TURNOVER</span>`;
+    } else if (p.isSack) {
+      yardagePill = `<span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-800">${p.yardsGained} YDS (SACK)</span>`;
+    } else if (p.yardsGained != null && p.playType !== "PAT") {
+      const gainColor = p.yardsGained > 0 ? "text-emerald-400 bg-emerald-950/40 border-emerald-800/40" : (p.yardsGained < 0 ? "text-rose-400 bg-rose-950/40 border-rose-800/40" : "text-slate-400 bg-slate-800/40 border-slate-700");
+      const sign = p.yardsGained > 0 ? "+" : "";
+      yardagePill = `<span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold border ${gainColor}">${sign}${p.yardsGained} YDS</span>`;
+    }
+
+    return `
+      <div class="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/90 shadow-sm space-y-1 hover:border-slate-700 transition">
+        <div class="flex items-center justify-between text-[11px] gap-2">
+          <div class="flex items-center gap-1.5">
+            <!-- Team Badge -->
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black text-white shadow-xs" style="background: ${teamColor};">
+              <span>${teamEmoji}</span>
+              <span>${teamShort}</span>
+            </span>
+            <!-- Down Badge -->
+            ${downBadge}
+            <span class="text-slate-500 font-mono text-[10px]">Q${p.quarter || '1'}</span>
+          </div>
+          <!-- Outcome Tag -->
+          ${yardagePill}
+        </div>
+        <div class="text-xs text-slate-200 leading-relaxed pl-0.5">
+          ${p.description}
+        </div>
+      </div>
+    `;
+  }).join('');
 
   // Ironman Fatigue list
   const fatigueList = document.getElementById('sim-fatigue-list');

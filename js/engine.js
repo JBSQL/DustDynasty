@@ -525,7 +525,17 @@ export class GameEngine {
     teamBox.plays++;
 
     if (result.playType === "RUN") teamBox.rushYards += result.yardsGained;
-    if (result.playType === "PASS" && result.isComplete) teamBox.passYards += result.yardsGained;
+    const offTeam = this.getOffenseTeam();
+    const defTeam = this.getDefenseTeam();
+    const preSnapDown = this.down;
+    const preSnapDist = this.yardsToGain;
+    const preSnapYard = this.yardLine;
+
+    // Attach situational metadata to result
+    result.possessionKey = offenseTeamKey;
+    result.offenseTeam = { name: offTeam.name, short: offTeam.short, color: offTeam.color, emoji: offTeam.emoji };
+    result.defenseTeam = { name: defTeam.name, short: defTeam.short, color: defTeam.color, emoji: defTeam.emoji };
+    result.preSnap = { down: preSnapDown, distance: preSnapDist, yardLine: preSnapYard };
 
     // Advance yardline
     this.yardLine += result.yardsGained;
@@ -538,9 +548,9 @@ export class GameEngine {
       this.playLog.unshift({
         ...result,
         score: { ...this.score },
-        down: this.down,
-        yardsToGain: this.yardsToGain,
-        yardLine: this.yardLine,
+        down: preSnapDown,
+        yardsToGain: preSnapDist,
+        yardLine: preSnapYard,
         quarter: this.quarter,
         gameClock: this.gameClock
       });
@@ -568,8 +578,8 @@ export class GameEngine {
       this.playLog.unshift({
         ...result,
         score: { ...this.score },
-        down: this.down,
-        yardsToGain: 0,
+        down: preSnapDown,
+        yardsToGain: preSnapDist,
         yardLine: 50,
         quarter: this.quarter,
         gameClock: this.gameClock
@@ -615,8 +625,8 @@ export class GameEngine {
         ...result,
         score: { ...this.score },
         down: 4,
-        yardsToGain: this.yardsToGain,
-        yardLine: this.yardLine,
+        yardsToGain: preSnapDist,
+        yardLine: preSnapYard,
         quarter: this.quarter,
         gameClock: this.gameClock
       });
@@ -630,9 +640,9 @@ export class GameEngine {
     this.playLog.unshift({
       ...result,
       score: { ...this.score },
-      down: this.down,
-      yardsToGain: this.yardsToGain,
-      yardLine: this.yardLine,
+      down: preSnapDown,
+      yardsToGain: preSnapDist,
+      yardLine: preSnapYard,
       quarter: this.quarter,
       gameClock: this.gameClock
     });
@@ -643,6 +653,7 @@ export class GameEngine {
   resolvePAT() {
     const coach = this.getOffenseCoach();
     const offTeam = this.getOffenseTeam();
+    const defTeam = this.getDefenseTeam();
     const offenseTeamKey = this.scoringTeamKey || this.possession;
     // Decision: 1 point from the 5, or 2 points from the 10
     const goForTwo = Math.random() < coach.twoPointPreference;
@@ -716,6 +727,11 @@ export class GameEngine {
         };
       }
     }
+
+    patResult.possessionKey = offenseTeamKey;
+    patResult.offenseTeam = { name: offTeam.name, short: offTeam.short, color: offTeam.color, emoji: offTeam.emoji };
+    patResult.defenseTeam = { name: defTeam.name, short: defTeam.short, color: defTeam.color, emoji: defTeam.emoji };
+    patResult.preSnap = { down: "PAT", distance: goForTwo ? 10 : 5, yardLine: patStartYard };
 
     this.playLog.unshift(patResult);
 
