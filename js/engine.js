@@ -648,6 +648,9 @@ export class GameEngine {
     const goForTwo = Math.random() < coach.twoPointPreference;
     let patResult;
 
+    // PAT is spotted at 5 yards out (45-yd line) or 10 yards out (40-yd line)
+    const patStartYard = goForTwo ? 40 : 45;
+
     if (goForTwo) {
       // 2-point play from 10-yard line
       const successChance = 0.44 + (coach.twoPointPreference * 0.08);
@@ -657,7 +660,11 @@ export class GameEngine {
         patResult = {
           type: "PAT",
           playType: "PAT",
-          description: `2-POINT CONVERSION SUCCESSFUL! ${offTeam.name} punches it in from the 10-yard line! (+2)`,
+          concept: "TWO_PT_CONVERSION",
+          defConcept: "GOALLINE_STAND",
+          startYardLine: patStartYard,
+          yardsGained: 10,
+          description: `2-POINT CONVERSION SUCCESSFUL! ${offTeam.name} punches it into the endzone from 10 yards out! (+2)`,
           score: { ...this.score },
           converted: true,
           points: 2
@@ -666,7 +673,11 @@ export class GameEngine {
         patResult = {
           type: "PAT",
           playType: "PAT",
-          description: `2-POINT CONVERSION FAILED! ${offTeam.name} stopped short from the 10.`,
+          concept: "TWO_PT_CONVERSION",
+          defConcept: "GOALLINE_STAND",
+          startYardLine: patStartYard,
+          yardsGained: 6,
+          description: `2-POINT CONVERSION FAILED! ${offTeam.name} stopped short of the goal line.`,
           score: { ...this.score },
           converted: false,
           points: 0
@@ -681,7 +692,11 @@ export class GameEngine {
         patResult = {
           type: "PAT",
           playType: "PAT",
-          description: `1-POINT CONVERSION GOOD! Quick slant converts from the 5-yard line! (+1)`,
+          concept: "ONE_PT_CONVERSION",
+          defConcept: "GOALLINE_STAND",
+          startYardLine: patStartYard,
+          yardsGained: 5,
+          description: `1-POINT CONVERSION GOOD! Quick strike into the endzone from the 5-yard line! (+1)`,
           score: { ...this.score },
           converted: true,
           points: 1
@@ -690,7 +705,11 @@ export class GameEngine {
         patResult = {
           type: "PAT",
           playType: "PAT",
-          description: `1-POINT CONVERSION MISSED! Pass sails wide at the goal line.`,
+          concept: "ONE_PT_CONVERSION",
+          defConcept: "GOALLINE_STAND",
+          startYardLine: patStartYard,
+          yardsGained: 0,
+          description: `1-POINT CONVERSION MISSED! Pass sails out of the back of the endzone.`,
           score: { ...this.score },
           converted: false,
           points: 0

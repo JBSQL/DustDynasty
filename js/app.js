@@ -797,7 +797,8 @@ function renderFieldPlayChalkboard(eng) {
   const svgGroup = document.getElementById('field-chalk-routes');
   if (!container || !svgGroup) return;
 
-  const currentYard = eng.yardLine;
+  // If a PAT is pending, line of scrimmage is spotted 5 yards out (45) rather than pegged at 50
+  const currentYard = eng.pendingPAT ? 45 : eng.yardLine;
   const losPercent = yardToPercent(currentYard);
 
   // Get current roles
@@ -807,8 +808,8 @@ function renderFieldPlayChalkboard(eng) {
   const defRoles = eng.assignDefenseRoles(defStarters);
 
   const latestPlay = eng.playLog[0];
-  const concept = latestPlay ? latestPlay.concept : "PRO_SET";
-  const defConcept = latestPlay ? latestPlay.defConcept : "BASE_4_1";
+  const concept = eng.pendingPAT ? "ONE_PT_CONVERSION" : (latestPlay ? latestPlay.concept : "PRO_SET");
+  const defConcept = eng.pendingPAT ? "GOALLINE_STAND" : (latestPlay ? latestPlay.defConcept : "BASE_4_1");
   const yardsGained = latestPlay ? (latestPlay.yardsGained || 0) : 0;
   const isPass = latestPlay && latestPlay.playType === "PASS";
 
@@ -823,11 +824,11 @@ function renderFieldPlayChalkboard(eng) {
   };
 
   const defensePositions = {
-    rush: { role: 'RUSH', x: Math.min(91, losPercent + 1.5), y: 47, label: 'DE', player: defRoles.rusher },
-    mlb:  { role: 'MLB',  x: Math.min(91, losPercent + 4.5), y: 55, label: 'LB', player: defRoles.middleLB },
-    cb1:  { role: 'CB1',  x: Math.min(91, losPercent + 3.0), y: 20, label: 'CB', player: defRoles.cb1 },
-    cb2:  { role: 'CB2',  x: Math.min(91, losPercent + 3.0), y: 80, label: 'CB', player: defRoles.cb2 },
-    fs:   { role: 'FS',   x: Math.min(91, losPercent + 9.0), y: 50, label: 'S',  player: defRoles.safety }
+    rush: { role: 'RUSH', x: Math.min(94, losPercent + 1.5), y: 47, label: 'DE', player: defRoles.rusher },
+    mlb:  { role: 'MLB',  x: Math.min(94, losPercent + 3.0), y: 55, label: 'LB', player: defRoles.middleLB },
+    cb1:  { role: 'CB1',  x: Math.min(94, losPercent + 2.5), y: 20, label: 'CB', player: defRoles.cb1 },
+    cb2:  { role: 'CB2',  x: Math.min(94, losPercent + 2.5), y: 80, label: 'CB', player: defRoles.cb2 },
+    fs:   { role: 'FS',   x: Math.min(95, losPercent + 4.5), y: 50, label: 'S',  player: defRoles.safety }
   };
 
   // Chalk Routes SVG generation based on the concept
@@ -872,6 +873,14 @@ function renderFieldPlayChalkboard(eng) {
     const sweepY = Math.random() < 0.5 ? 20 : 80;
     const runEndX = Math.min(91, losPercent + Math.max(3, yardsGained * 1.5));
     routesMarkup += makePath(`M ${offensePositions.rb.x}% 64% Q ${losPercent - 2}% ${sweepY}% ${runEndX}% ${sweepY}%`, 'arrow-run', '#facc15', 'none');
+  } else if (concept === "ONE_PT_CONVERSION") {
+    // Slant directly into the endzone
+    routesMarkup += makePath(`M ${xWR1}% 18% L 94% 35%`, 'arrow-offense', '#38bdf8');
+    routesMarkup += makePath(`M ${xWR2}% 82% L 94% 65%`, 'arrow-offense', '#38bdf8');
+  } else if (concept === "TWO_PT_CONVERSION") {
+    // Goal line plunge / smash into endzone
+    routesMarkup += makePath(`M ${offensePositions.rb.x}% 64% L ${losPercent}% 50% L 95% 50%`, 'arrow-run', '#facc15', 'none');
+    routesMarkup += makePath(`M ${xWR1}% 18% L 94% 20%`, 'arrow-offense', '#38bdf8');
   } else {
     // Default Pro-set routes
     const standardX = Math.min(91, losPercent + 8);
@@ -1021,9 +1030,27 @@ function animatePlayOnField(eng, playResult, onComplete) {
       if (ballEl) ballEl.style.left = `${endPercent}%`;
     }
 
-    // STEP 2: PASS RELEASE & TACKLE (fires after 650ms)
+      // STEP 2: PASS RELEASE & TACKLE (fires after 650ms)
     setTimeout(() => {
-      if (playResult.playType === "PASS" && !playResult.isSack) {
+      if (playResult.playType === "PAT") {
+        const isTwoPt = playResult.concept === "TWO_PT_CONVERSION";
+        const converted = playResult.converted;
+        
+        // Target is deep across the goal line (94% to 96%) if converted, or stopped at goal line (91%)
+        const finishX = converted ? 95 : 91;
+
+        if (isTwoPt) {
+          // RB plunges across goal line
+          if (dotRB) { dotRB.style.left = `${finishX}%`; dotRB.style.top = `50%`; }
+          if (ballEl) { ballEl.style.left = `${finishX}%`; ballEl.style.top = `50%`; }
+          if (dotMLB) { dotMLB.style.left = `${Math.min(97, finishX + 2.5)}%`; dotMLB.style.top = `52%`; }
+        } else {
+          // 1-PT quick strike to WR1 in the endzone
+          if (dotWR1) { dotWR1.style.left = `${finishX}%`; dotWR1.style.top = `35%`; }
+          if (ballEl) { ballEl.style.left = `${finishX}%`; ballEl.style.top = `35%`; }
+          if (dotCB1) { dotCB1.style.left = `${Math.min(97, finishX + 2.5)}%`; dotCB1.style.top = `40%`; }
+        }
+      } else if (playResult.playType === "PASS" && !playResult.isSack) {
         const isDeep = playResult.concept === "FOUR_VERTS";
         const recTargetY = isDeep ? 18 : 35;
 
