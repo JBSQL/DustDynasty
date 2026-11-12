@@ -594,6 +594,46 @@ function renderProspectGrid() {
 // -------------------------------------------------------------
 // TAB 4: GAME DAY SIMULATOR
 // -------------------------------------------------------------
+let isPlayAnimating = false;
+
+function executePlayWithAnimation() {
+  if (!currentGameEngine || currentGameEngine.isGameOver || isPlayAnimating) return;
+
+  const eng = currentGameEngine;
+  isPlayAnimating = true;
+
+  const stepBtn = document.getElementById('btn-step-play');
+  const simDriveBtn = document.getElementById('btn-sim-drive');
+  const simGameBtn = document.getElementById('btn-sim-full-game');
+
+  if (stepBtn) {
+    stepBtn.disabled = true;
+    stepBtn.innerHTML = `Running Play... ⏱️`;
+    stepBtn.classList.add('opacity-60', 'cursor-not-allowed');
+  }
+  if (simDriveBtn) simDriveBtn.disabled = true;
+  if (simGameBtn) simGameBtn.disabled = true;
+
+  // 1. Step the play in the engine
+  const playResult = eng.stepPlay();
+
+  // 2. Play the route & ball animation sequence
+  animatePlayOnField(eng, playResult, () => {
+    isPlayAnimating = false;
+    if (stepBtn) {
+      stepBtn.disabled = false;
+      stepBtn.innerHTML = eng.pendingPAT ? `Play Extra Point 🎯` : `Next Play ▶`;
+      stepBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+    }
+    if (simDriveBtn) simDriveBtn.disabled = false;
+    if (simGameBtn) simGameBtn.disabled = false;
+
+    // Refresh view for next play line of scrimmage
+    updateGameDayView();
+    if (eng.isGameOver) handleGameOver();
+  });
+}
+
 function prepareGameDay() {
   const userTeam = league.getUserTeam();
   const matchups = league.getCurrentWeekMatchups();
@@ -610,10 +650,8 @@ function prepareGameDay() {
 
   // Control button bindings
   document.getElementById('btn-step-play').onclick = () => {
-    if (!currentGameEngine || currentGameEngine.isGameOver) return;
-    currentGameEngine.stepPlay();
-    updateGameDayView();
-    if (currentGameEngine.isGameOver) handleGameOver();
+    if (!currentGameEngine || currentGameEngine.isGameOver || isPlayAnimating) return;
+    executePlayWithAnimation();
   };
 
   document.getElementById('btn-sim-drive').onclick = () => {
@@ -859,10 +897,10 @@ function renderFieldPlayChalkboard(eng) {
   let dotsHtml = "";
   
   // Offense
-  Object.values(offensePositions).forEach(pos => {
+  Object.entries(offensePositions).forEach(([key, pos]) => {
     const isBallCarrier = latestPlay && latestPlay.ballCarrier && latestPlay.ballCarrier.id === pos.player.id;
     dotsHtml += `
-      <div class="field-player-dot player-offense ${isBallCarrier ? 'ball-carrier' : ''}" 
+      <div id="player-dot-${key}" class="field-player-dot player-offense ${isBallCarrier ? 'ball-carrier' : ''}" 
            style="left: ${pos.x}%; top: ${pos.y}%;" 
            title="${pos.player.name} (${pos.role})">
         ${pos.label}
@@ -871,10 +909,10 @@ function renderFieldPlayChalkboard(eng) {
   });
 
   // Defense
-  Object.values(defensePositions).forEach(pos => {
+  Object.entries(defensePositions).forEach(([key, pos]) => {
     const isTackler = latestPlay && latestPlay.tackler && latestPlay.tackler.id === pos.player.id;
     dotsHtml += `
-      <div class="field-player-dot player-defense ${isTackler ? 'tackler' : ''}" 
+      <div id="player-dot-${key}" class="field-player-dot player-defense ${isTackler ? 'tackler' : ''}" 
            style="left: ${pos.x}%; top: ${pos.y}%;" 
            title="${pos.player.name} (${pos.role})">
         ${pos.label}
@@ -883,6 +921,127 @@ function renderFieldPlayChalkboard(eng) {
   });
 
   container.innerHTML = dotsHtml;
+}
+
+// Animate the actual snap, route progression, pass delivery/run cut, and tackle
+function animatePlayOnField(eng, playResult, onComplete) {
+  if (!playResult) {
+    onComplete();
+    return;
+  }
+
+  const ballEl = document.getElementById('field-ball');
+  const coachCallEl = document.getElementById('sim-coach-call');
+  const offBadge = document.getElementById('sim-play-concept-badge');
+  const defBadge = document.getElementById('sim-def-concept-badge');
+
+  if (offBadge && playResult.concept) {
+    offBadge.textContent = `OFF: ${formatConceptName(playResult.concept)}`;
+    offBadge.classList.remove('hidden');
+  }
+  if (defBadge && playResult.defConcept) {
+    defBadge.textContent = `DEF: ${formatConceptName(playResult.defConcept)}`;
+    defBadge.classList.remove('hidden');
+  }
+
+  const snapYard = playResult.startYardLine != null ? playResult.startYardLine : eng.yardLine;
+  const snapPercent = yardToPercent(snapYard);
+  const yardsGained = playResult.yardsGained || 0;
+  const endYard = Math.max(0, Math.min(50, snapYard + yardsGained));
+  const endPercent = yardToPercent(endYard);
+
+  // Set call text immediately
+  if (coachCallEl) coachCallEl.textContent = `Snap! ${playResult.description}`;
+
+  // Grab player elements
+  const dotC = document.getElementById('player-dot-c');
+  const dotQB = document.getElementById('player-dot-qb');
+  const dotRB = document.getElementById('player-dot-rb');
+  const dotWR1 = document.getElementById('player-dot-wr1');
+  const dotWR2 = document.getElementById('player-dot-wr2');
+  const dotRush = document.getElementById('player-dot-rush');
+  const dotMLB = document.getElementById('player-dot-mlb');
+  const dotCB1 = document.getElementById('player-dot-cb1');
+  const dotCB2 = document.getElementById('player-dot-cb2');
+  const dotFS = document.getElementById('player-dot-fs');
+
+  // STEP 1: SNAP (QB steps back, ball moves to QB, receivers break, rushers surge)
+  if (ballEl && dotQB) {
+    ballEl.style.left = `${Math.max(9, snapPercent - 4)}%`;
+    ballEl.style.top = `50%`;
+  }
+
+  // Small delay so pre-snap positions register before moving
+  setTimeout(() => {
+    // Stage 1 Movement: Routes unfold
+    if (dotRush) {
+      dotRush.style.left = `${Math.max(9, snapPercent - 2)}%`;
+      dotRush.style.top = `48%`;
+    }
+    if (playResult.defConcept === "BANZAI_BLITZ" && dotMLB) {
+      dotMLB.style.left = `${Math.max(9, snapPercent - 3)}%`;
+      dotMLB.style.top = `52%`;
+    }
+
+    if (playResult.concept === "QUICK_SLANTS") {
+      if (dotWR1) { dotWR1.style.left = `${snapPercent + 6}%`; dotWR1.style.top = `35%`; }
+      if (dotWR2) { dotWR2.style.left = `${snapPercent + 6}%`; dotWR2.style.top = `65%`; }
+      if (dotCB1) { dotCB1.style.left = `${snapPercent + 7}%`; dotCB1.style.top = `33%`; }
+      if (dotCB2) { dotCB2.style.left = `${snapPercent + 7}%`; dotCB2.style.top = `67%`; }
+    } else if (playResult.concept === "FOUR_VERTS") {
+      if (dotWR1) { dotWR1.style.left = `${Math.min(91, snapPercent + 18)}%`; dotWR1.style.top = `15%`; }
+      if (dotWR2) { dotWR2.style.left = `${Math.min(91, snapPercent + 18)}%`; dotWR2.style.top = `85%`; }
+      if (dotCB1) { dotCB1.style.left = `${Math.min(91, snapPercent + 17)}%`; dotCB1.style.top = `17%`; }
+      if (dotCB2) { dotCB2.style.left = `${Math.min(91, snapPercent + 17)}%`; dotCB2.style.top = `83%`; }
+    } else if (playResult.concept === "HB_DIVE" || playResult.concept === "OUTSIDE_SWEEP") {
+      if (dotRB) {
+        dotRB.style.left = `${endPercent}%`;
+        dotRB.style.top = playResult.concept === "OUTSIDE_SWEEP" ? `25%` : `50%`;
+      }
+      if (ballEl) {
+        ballEl.style.left = `${endPercent}%`;
+        ballEl.style.top = playResult.concept === "OUTSIDE_SWEEP" ? `25%` : `50%`;
+      }
+      if (dotMLB) {
+        dotMLB.style.left = `${endPercent + 1}%`;
+        dotMLB.style.top = playResult.concept === "OUTSIDE_SWEEP" ? `26%` : `51%`;
+      }
+    } else if (playResult.playType === "PASS" && playResult.isSack) {
+      if (dotRush && dotQB) {
+        dotRush.style.left = `${endPercent}%`;
+        dotQB.style.left = `${endPercent}%`;
+      }
+      if (ballEl) ballEl.style.left = `${endPercent}%`;
+    }
+
+    // STEP 2: PASS RELEASE & TACKLE (fires after 650ms)
+    setTimeout(() => {
+      if (playResult.playType === "PASS" && !playResult.isSack) {
+        // Ball flies to end position
+        if (ballEl) {
+          ballEl.style.left = `${endPercent}%`;
+          ballEl.style.top = playResult.concept === "FOUR_VERTS" ? `18%` : `35%`;
+        }
+
+        // Receiver and DB meet the ball
+        if (dotWR1 && (playResult.concept === "QUICK_SLANTS" || playResult.concept === "FOUR_VERTS")) {
+          dotWR1.style.left = `${endPercent}%`;
+          dotWR1.style.top = playResult.concept === "FOUR_VERTS" ? `18%` : `35%`;
+        }
+        if (dotCB1) {
+          dotCB1.style.left = `${Math.min(91, endPercent + 1)}%`;
+          dotCB1.style.top = playResult.concept === "FOUR_VERTS" ? `19%` : `36%`;
+        }
+      }
+
+      // STEP 3: PLAY CONCLUDES & WHISTLE (fires after 1100ms)
+      setTimeout(() => {
+        onComplete();
+      }, 700);
+
+    }, 650);
+
+  }, 100);
 }
 
 function handleGameOver() {
