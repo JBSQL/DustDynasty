@@ -271,12 +271,24 @@
             <span class="text-2xl" id="sim-away-emoji">🌲</span>
           </div>
         </div>
+        
+        <!-- Drive Direction & Possession Banner -->
+        <div class="mt-2 pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs px-1">
+          <div class="flex items-center gap-2 font-bold" id="sim-possession-bar">
+            <span class="text-amber-400">🏈 POSSESSION:</span>
+            <span id="sim-possession-team-name" class="text-white">Cul-de-sac Crushers</span>
+            <span id="sim-possession-arrow" class="text-emerald-400 font-mono text-sm">DRIVING ➔</span>
+          </div>
+          <div class="text-[11px] text-slate-400 font-mono" id="sim-field-target-desc">
+            Target: Right Endzone (Titans)
+          </div>
+        </div>
       </div>
 
       <!-- 50-Yard Field Visualizer -->
       <div class="field-container relative" id="football-field">
-        <div class="endzone-home">CRUSHERS</div>
-        <div class="endzone-away">TITANS</div>
+        <div class="endzone-home" id="endzone-home-banner">CRUSHERS</div>
+        <div class="endzone-away" id="endzone-away-banner">TITANS</div>
         
         <!-- Midfield line (25-yard marker) -->
         <div class="midfield-line" title="Midfield 25-Yard First Down Target"></div>

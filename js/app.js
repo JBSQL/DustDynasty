@@ -702,18 +702,56 @@ function updateGameDayView() {
     if (nextPlayBtn) nextPlayBtn.innerHTML = `Next Play ▶`;
   }
 
+  // Dynamic Endzone Banners (Approach A: Left is Home, Right is Away)
+  const homeEndzone = document.getElementById('endzone-home-banner');
+  const awayEndzone = document.getElementById('endzone-away-banner');
+  if (homeEndzone) {
+    homeEndzone.textContent = eng.homeTeam.short || eng.homeTeam.name.substring(0, 8).toUpperCase();
+    homeEndzone.style.background = `linear-gradient(135deg, ${eng.homeTeam.color || '#e11d48'}, #0f172a)`;
+  }
+  if (awayEndzone) {
+    awayEndzone.textContent = eng.awayTeam.short || eng.awayTeam.name.substring(0, 8).toUpperCase();
+    awayEndzone.style.background = `linear-gradient(135deg, ${eng.awayTeam.color || '#16a34a'}, #0f172a)`;
+  }
+
+  // Possession Bar & Direction Indicator
+  const isHomePoss = eng.possession === "home";
+  const possTeam = isHomePoss ? eng.homeTeam : eng.awayTeam;
+  const defTeam = isHomePoss ? eng.awayTeam : eng.homeTeam;
+  const possTeamNameEl = document.getElementById('sim-possession-team-name');
+  const possArrowEl = document.getElementById('sim-possession-arrow');
+  const targetDescEl = document.getElementById('sim-field-target-desc');
+
+  if (possTeamNameEl) possTeamNameEl.textContent = `${possTeam.emoji} ${possTeam.name}`;
+  if (possArrowEl) {
+    if (isHomePoss) {
+      possArrowEl.innerHTML = `DRIVING ➔`;
+      possArrowEl.className = "text-emerald-400 font-mono text-sm font-bold animate-pulse";
+    } else {
+      possArrowEl.innerHTML = `◀ DRIVING`;
+      possArrowEl.className = "text-amber-400 font-mono text-sm font-bold animate-pulse";
+    }
+  }
+  if (targetDescEl) {
+    targetDescEl.textContent = isHomePoss 
+      ? `Attacking: Right Endzone (${defTeam.short})`
+      : `Attacking: Left Endzone (${defTeam.short})`;
+  }
+
   // Visual Field Update
-  // Field ranges from 0 to 50 yards. Endzones take 8% on left and right. 
-  // Playable grass is 84% wide (from 8% to 92%).
-  // yardLine 0 = 8%, yardLine 50 = 92%
-  const percentPos = 8 + (eng.yardLine / 50) * 84;
-  const firstDownPercent = 8 + (eng.firstDownMarker / 50) * 84;
+  // Home drives Left-to-Right (0 to 50); Away drives Right-to-Left (0 to 50)
+  const effectiveYard = eng.pendingPAT ? 45 : eng.yardLine;
+  const percentPos = yardToPercent(effectiveYard, eng.possession);
+  const firstDownPercent = yardToPercent(eng.firstDownMarker, eng.possession);
 
   const ballEl = document.getElementById('field-ball');
   const losEl = document.getElementById('field-los');
   const markerEl = document.getElementById('field-marker');
 
-  if (ballEl) ballEl.style.left = `${percentPos}%`;
+  if (ballEl) {
+    ballEl.style.left = `${percentPos}%`;
+    ballEl.style.top = `50%`;
+  }
   if (losEl) losEl.style.left = `${percentPos}%`;
   if (markerEl) markerEl.style.left = `${firstDownPercent}%`;
 
@@ -787,9 +825,15 @@ function formatConceptName(name) {
 }
 
 // Convert yard line (0 to 50) to field percentage (8% to 92%)
-function yardToPercent(yard) {
+// When Home possesses: 0 = 8% (own goal), 50 = 92% (opponent goal) -> drives left-to-right (dir = +1)
+// When Away possesses: 0 = 92% (own goal), 50 = 8% (opponent goal) -> drives right-to-left (dir = -1)
+function yardToPercent(yard, possession = "home") {
   const clamped = Math.max(0, Math.min(50, yard));
-  return 8 + (clamped / 50) * 84;
+  if (possession === "home") {
+    return 8 + (clamped / 50) * 84;
+  } else {
+    return 92 - (clamped / 50) * 84;
+  }
 }
 
 function renderFieldPlayChalkboard(eng) {
@@ -797,9 +841,18 @@ function renderFieldPlayChalkboard(eng) {
   const svgGroup = document.getElementById('field-chalk-routes');
   if (!container || !svgGroup) return;
 
+  const isHomePoss = eng.possession === "home";
+  const dir = isHomePoss ? 1 : -1;
+
+  // Colors
+  const offTeam = isHomePoss ? eng.homeTeam : eng.awayTeam;
+  const defTeam = isHomePoss ? eng.awayTeam : eng.homeTeam;
+  const offColor = offTeam.color || "#0284c7";
+  const defColor = defTeam.color || "#dc2626";
+
   // If a PAT is pending, line of scrimmage is spotted 5 yards out (45) rather than pegged at 50
   const currentYard = eng.pendingPAT ? 45 : eng.yardLine;
-  const losPercent = yardToPercent(currentYard);
+  const losPercent = yardToPercent(currentYard, eng.possession);
 
   // Get current roles
   const offStarters = eng.getOffenseStarters();
@@ -814,28 +867,32 @@ function renderFieldPlayChalkboard(eng) {
   const isPass = latestPlay && latestPlay.playType === "PASS";
 
   // Base Formation coordinates (% from left, % from top)
-  // Offensive direction: playing left-to-right toward opponent endzone
+  // dir = +1 (Home, Left-to-Right), dir = -1 (Away, Right-to-Left)
   const offensePositions = {
-    c:   { role: 'C',   x: losPercent - 0.5, y: 50, label: 'C',  player: offRoles.center },
-    qb:  { role: 'QB',  x: Math.max(9, losPercent - 4), y: 50, label: 'QB', player: offRoles.qb },
-    rb:  { role: 'RB',  x: Math.max(9, losPercent - 6), y: 64, label: 'RB', player: offRoles.rb },
-    wr1: { role: 'WR1', x: losPercent - 0.8, y: 18, label: 'W1', player: offRoles.wr1 },
-    wr2: { role: 'WR2', x: losPercent - 0.8, y: 82, label: 'W2', player: offRoles.wr2 }
+    c:   { role: 'C',   x: losPercent - (0.5 * dir), y: 50, label: 'C',  player: offRoles.center },
+    qb:  { role: 'QB',  x: losPercent - (4.0 * dir), y: 50, label: 'QB', player: offRoles.qb },
+    rb:  { role: 'RB',  x: losPercent - (6.0 * dir), y: 64, label: 'RB', player: offRoles.rb },
+    wr1: { role: 'WR1', x: losPercent - (0.8 * dir), y: 18, label: 'W1', player: offRoles.wr1 },
+    wr2: { role: 'WR2', x: losPercent - (0.8 * dir), y: 82, label: 'W2', player: offRoles.wr2 }
   };
 
   const defensePositions = {
-    rush: { role: 'RUSH', x: Math.min(94, losPercent + 1.5), y: 47, label: 'DE', player: defRoles.rusher },
-    mlb:  { role: 'MLB',  x: Math.min(94, losPercent + 3.0), y: 55, label: 'LB', player: defRoles.middleLB },
-    cb1:  { role: 'CB1',  x: Math.min(94, losPercent + 2.5), y: 20, label: 'CB', player: defRoles.cb1 },
-    cb2:  { role: 'CB2',  x: Math.min(94, losPercent + 2.5), y: 80, label: 'CB', player: defRoles.cb2 },
-    fs:   { role: 'FS',   x: Math.min(95, losPercent + 4.5), y: 50, label: 'S',  player: defRoles.safety }
+    rush: { role: 'RUSH', x: losPercent + (1.5 * dir), y: 47, label: 'DE', player: defRoles.rusher },
+    mlb:  { role: 'MLB',  x: losPercent + (3.0 * dir), y: 55, label: 'LB', player: defRoles.middleLB },
+    cb1:  { role: 'CB1',  x: losPercent + (2.5 * dir), y: 20, label: 'CB', player: defRoles.cb1 },
+    cb2:  { role: 'CB2',  x: losPercent + (2.5 * dir), y: 80, label: 'CB', player: defRoles.cb2 },
+    fs:   { role: 'FS',   x: losPercent + (4.5 * dir), y: 50, label: 'S',  player: defRoles.safety }
   };
+
+  // Clamp defense & offense positions to stay on field (5% to 95%)
+  Object.values(offensePositions).forEach(p => { p.x = Math.max(5, Math.min(95, p.x)); });
+  Object.values(defensePositions).forEach(p => { p.x = Math.max(5, Math.min(95, p.x)); });
 
   // Chalk Routes SVG generation based on the concept
   let routesMarkup = "";
 
   // Helper to draw SVG path with arrow marker
-  const makePath = (d, marker = 'arrow-offense', stroke = '#38bdf8', dash = '3 3') => {
+  const makePath = (d, marker = 'arrow-offense', stroke = offColor, dash = '3 3') => {
     return `<path d="${d}" fill="none" stroke="${stroke}" stroke-width="2" stroke-dasharray="${dash}" marker-end="url(#${marker})" opacity="0.85"/>`;
   };
 
@@ -845,64 +902,66 @@ function renderFieldPlayChalkboard(eng) {
 
   if (concept === "QUICK_SLANTS") {
     // WR1 cuts down and in, WR2 cuts up and in
-    const slantX = Math.min(91, losPercent + 7);
-    routesMarkup += makePath(`M ${xWR1}% 18% L ${slantX}% 35%`, 'arrow-offense', '#38bdf8');
-    routesMarkup += makePath(`M ${xWR2}% 82% L ${slantX}% 65%`, 'arrow-offense', '#38bdf8');
-    routesMarkup += makePath(`M ${offensePositions.rb.x}% 64% L ${Math.min(91, losPercent + 2)}% 55%`, 'arrow-run', '#facc15');
+    const slantX = Math.max(5, Math.min(95, losPercent + (7 * dir)));
+    routesMarkup += makePath(`M ${xWR1}% 18% L ${slantX}% 35%`, 'arrow-offense', offColor);
+    routesMarkup += makePath(`M ${xWR2}% 82% L ${slantX}% 65%`, 'arrow-offense', offColor);
+    routesMarkup += makePath(`M ${offensePositions.rb.x}% 64% L ${Math.max(5, Math.min(95, losPercent + (2 * dir)))}% 55%`, 'arrow-run', '#facc15');
   } else if (concept === "FOUR_VERTS") {
     // Deep streaks down the sidelines
-    const deepX = Math.min(91, losPercent + 22);
-    routesMarkup += makePath(`M ${xWR1}% 18% L ${deepX}% 15%`, 'arrow-offense', '#38bdf8');
-    routesMarkup += makePath(`M ${xWR2}% 82% L ${deepX}% 85%`, 'arrow-offense', '#38bdf8');
-    routesMarkup += makePath(`M ${offensePositions.rb.x}% 64% L ${Math.min(91, losPercent + 8)}% 45%`, 'arrow-offense', '#38bdf8');
+    const deepX = Math.max(5, Math.min(95, losPercent + (22 * dir)));
+    routesMarkup += makePath(`M ${xWR1}% 18% L ${deepX}% 15%`, 'arrow-offense', offColor);
+    routesMarkup += makePath(`M ${xWR2}% 82% L ${deepX}% 85%`, 'arrow-offense', offColor);
+    routesMarkup += makePath(`M ${offensePositions.rb.x}% 64% L ${Math.max(5, Math.min(95, losPercent + (8 * dir)))}% 45%`, 'arrow-offense', offColor);
   } else if (concept === "OUT_ROUTES") {
     // Out route towards sideline
-    const outX = Math.min(91, losPercent + 10);
-    routesMarkup += makePath(`M ${xWR1}% 18% L ${outX}% 18% L ${outX}% 8%`, 'arrow-offense', '#38bdf8');
-    routesMarkup += makePath(`M ${xWR2}% 82% L ${outX}% 82% L ${outX}% 92%`, 'arrow-offense', '#38bdf8');
+    const outX = Math.max(5, Math.min(95, losPercent + (10 * dir)));
+    routesMarkup += makePath(`M ${xWR1}% 18% L ${outX}% 18% L ${outX}% 8%`, 'arrow-offense', offColor);
+    routesMarkup += makePath(`M ${xWR2}% 82% L ${outX}% 82% L ${outX}% 92%`, 'arrow-offense', offColor);
   } else if (concept === "WR_SCREEN") {
     // WR1 screens back, Center seals
-    routesMarkup += makePath(`M ${xWR1}% 18% L ${Math.max(9, losPercent - 2)}% 25%`, 'arrow-offense', '#38bdf8');
+    routesMarkup += makePath(`M ${xWR1}% 18% L ${Math.max(5, Math.min(95, losPercent - (2 * dir)))}% 25%`, 'arrow-offense', offColor);
     routesMarkup += makePath(`M ${offensePositions.c.x}% 50% L ${losPercent}% 30%`, 'arrow-run', '#facc15');
   } else if (concept === "HB_DIVE") {
     // RB plunges between Center and Tackle
-    const runEndX = Math.min(91, losPercent + Math.max(3, yardsGained * 1.5));
+    const runEndX = Math.max(5, Math.min(95, losPercent + (Math.max(3, yardsGained * 1.5) * dir)));
     routesMarkup += makePath(`M ${offensePositions.rb.x}% 64% L ${losPercent}% 50% L ${runEndX}% 50%`, 'arrow-run', '#facc15', 'none');
   } else if (concept === "OUTSIDE_SWEEP") {
     // RB sweeps outside
     const sweepY = Math.random() < 0.5 ? 20 : 80;
-    const runEndX = Math.min(91, losPercent + Math.max(3, yardsGained * 1.5));
-    routesMarkup += makePath(`M ${offensePositions.rb.x}% 64% Q ${losPercent - 2}% ${sweepY}% ${runEndX}% ${sweepY}%`, 'arrow-run', '#facc15', 'none');
+    const runEndX = Math.max(5, Math.min(95, losPercent + (Math.max(3, yardsGained * 1.5) * dir)));
+    routesMarkup += makePath(`M ${offensePositions.rb.x}% 64% Q ${losPercent - (2 * dir)}% ${sweepY}% ${runEndX}% ${sweepY}%`, 'arrow-run', '#facc15', 'none');
   } else if (concept === "ONE_PT_CONVERSION") {
-    // Slant directly into the endzone
-    routesMarkup += makePath(`M ${xWR1}% 18% L 94% 35%`, 'arrow-offense', '#38bdf8');
-    routesMarkup += makePath(`M ${xWR2}% 82% L 94% 65%`, 'arrow-offense', '#38bdf8');
+    // Slant directly into the target endzone
+    const targetGoalX = isHomePoss ? 95 : 5;
+    routesMarkup += makePath(`M ${xWR1}% 18% L ${targetGoalX}% 35%`, 'arrow-offense', offColor);
+    routesMarkup += makePath(`M ${xWR2}% 82% L ${targetGoalX}% 65%`, 'arrow-offense', offColor);
   } else if (concept === "TWO_PT_CONVERSION") {
-    // Goal line plunge / smash into endzone
-    routesMarkup += makePath(`M ${offensePositions.rb.x}% 64% L ${losPercent}% 50% L 95% 50%`, 'arrow-run', '#facc15', 'none');
-    routesMarkup += makePath(`M ${xWR1}% 18% L 94% 20%`, 'arrow-offense', '#38bdf8');
+    // Goal line plunge / smash into target endzone
+    const targetGoalX = isHomePoss ? 95 : 5;
+    routesMarkup += makePath(`M ${offensePositions.rb.x}% 64% L ${losPercent}% 50% L ${targetGoalX}% 50%`, 'arrow-run', '#facc15', 'none');
+    routesMarkup += makePath(`M ${xWR1}% 18% L ${targetGoalX}% 20%`, 'arrow-offense', offColor);
   } else {
     // Default Pro-set routes
-    const standardX = Math.min(91, losPercent + 8);
-    routesMarkup += makePath(`M ${xWR1}% 18% L ${standardX}% 22%`, 'arrow-offense', '#38bdf8');
-    routesMarkup += makePath(`M ${xWR2}% 82% L ${standardX}% 78%`, 'arrow-offense', '#38bdf8');
+    const standardX = Math.max(5, Math.min(95, losPercent + (8 * dir)));
+    routesMarkup += makePath(`M ${xWR1}% 18% L ${standardX}% 22%`, 'arrow-offense', offColor);
+    routesMarkup += makePath(`M ${xWR2}% 82% L ${standardX}% 78%`, 'arrow-offense', offColor);
   }
 
   // Defensive Assignments / Pressure
   if (defConcept === "BANZAI_BLITZ") {
     // Rusher and LB both charge QB
-    routesMarkup += makePath(`M ${defensePositions.rush.x}% ${defensePositions.rush.y}% L ${offensePositions.qb.x + 1}% 48%`, 'arrow-defense', '#ef4444', '2 2');
-    routesMarkup += makePath(`M ${defensePositions.mlb.x}% ${defensePositions.mlb.y}% L ${offensePositions.qb.x + 1}% 53%`, 'arrow-defense', '#ef4444', '2 2');
+    routesMarkup += makePath(`M ${defensePositions.rush.x}% ${defensePositions.rush.y}% L ${offensePositions.qb.x + (1 * dir)}% 48%`, 'arrow-defense', defColor, '2 2');
+    routesMarkup += makePath(`M ${defensePositions.mlb.x}% ${defensePositions.mlb.y}% L ${offensePositions.qb.x + (1 * dir)}% 53%`, 'arrow-defense', defColor, '2 2');
   } else {
     // Rusher rushes, CBs shadow
-    routesMarkup += makePath(`M ${defensePositions.rush.x}% ${defensePositions.rush.y}% L ${offensePositions.qb.x + 1.5}% 50%`, 'arrow-defense', '#ef4444', '2 2');
-    routesMarkup += makePath(`M ${defensePositions.cb1.x}% 20% L ${offensePositions.wr1.x + 4}% 20%`, 'arrow-defense', '#f87171', '2 2');
-    routesMarkup += makePath(`M ${defensePositions.cb2.x}% 80% L ${offensePositions.wr2.x + 4}% 80%`, 'arrow-defense', '#f87171', '2 2');
+    routesMarkup += makePath(`M ${defensePositions.rush.x}% ${defensePositions.rush.y}% L ${offensePositions.qb.x + (1.5 * dir)}% 50%`, 'arrow-defense', defColor, '2 2');
+    routesMarkup += makePath(`M ${defensePositions.cb1.x}% 20% L ${offensePositions.wr1.x + (4 * dir)}% 20%`, 'arrow-defense', defColor, '2 2');
+    routesMarkup += makePath(`M ${defensePositions.cb2.x}% 80% L ${offensePositions.wr2.x + (4 * dir)}% 80%`, 'arrow-defense', defColor, '2 2');
   }
 
   svgGroup.innerHTML = routesMarkup;
 
-  // Render 10 Player Dots
+  // Render 10 Player Dots with Team Jersey Colors
   let dotsHtml = "";
   
   // Offense
@@ -910,8 +969,8 @@ function renderFieldPlayChalkboard(eng) {
     const isBallCarrier = latestPlay && latestPlay.ballCarrier && latestPlay.ballCarrier.id === pos.player.id;
     dotsHtml += `
       <div id="player-dot-${key}" class="field-player-dot player-offense ${isBallCarrier ? 'ball-carrier' : ''}" 
-           style="left: ${pos.x}%; top: ${pos.y}%;" 
-           title="${pos.player.name} (${pos.role})">
+           style="left: ${pos.x}%; top: ${pos.y}%; background: ${offColor}; border: 2px solid #ffffff;" 
+           title="${pos.player.name} (${pos.role}) - ${offTeam.name}">
         ${pos.label}
       </div>
     `;
@@ -922,8 +981,8 @@ function renderFieldPlayChalkboard(eng) {
     const isTackler = latestPlay && latestPlay.tackler && latestPlay.tackler.id === pos.player.id;
     dotsHtml += `
       <div id="player-dot-${key}" class="field-player-dot player-defense ${isTackler ? 'tackler' : ''}" 
-           style="left: ${pos.x}%; top: ${pos.y}%;" 
-           title="${pos.player.name} (${pos.role})">
+           style="left: ${pos.x}%; top: ${pos.y}%; background: ${defColor}; border: 2px solid rgba(255,255,255,0.4);" 
+           title="${pos.player.name} (${pos.role}) - ${defTeam.name}">
         ${pos.label}
       </div>
     `;
@@ -953,11 +1012,14 @@ function animatePlayOnField(eng, playResult, onComplete) {
     defBadge.classList.remove('hidden');
   }
 
+  const isHomePoss = eng.possession === "home";
+  const dir = isHomePoss ? 1 : -1;
+
   const snapYard = playResult.startYardLine != null ? playResult.startYardLine : eng.yardLine;
-  const snapPercent = yardToPercent(snapYard);
+  const snapPercent = yardToPercent(snapYard, eng.possession);
   const yardsGained = playResult.yardsGained || 0;
   const endYard = Math.max(0, Math.min(50, snapYard + yardsGained));
-  const endPercent = yardToPercent(endYard);
+  const endPercent = yardToPercent(endYard, eng.possession);
 
   // Set call text immediately
   if (coachCallEl) coachCallEl.textContent = `Snap! ${playResult.description}`;
@@ -976,7 +1038,7 @@ function animatePlayOnField(eng, playResult, onComplete) {
 
   // STEP 1: SNAP (QB steps back, ball moves to QB, receivers break, rushers surge)
   if (ballEl && dotQB) {
-    ballEl.style.left = `${Math.max(9, snapPercent - 4)}%`;
+    ballEl.style.left = `${snapPercent - (4 * dir)}%`;
     ballEl.style.top = `50%`;
   }
 
@@ -984,24 +1046,24 @@ function animatePlayOnField(eng, playResult, onComplete) {
   setTimeout(() => {
     // Stage 1 Movement: Routes unfold
     if (dotRush) {
-      dotRush.style.left = `${Math.max(9, snapPercent - 2)}%`;
+      dotRush.style.left = `${snapPercent - (2 * dir)}%`;
       dotRush.style.top = `48%`;
     }
     if (playResult.defConcept === "BANZAI_BLITZ" && dotMLB) {
-      dotMLB.style.left = `${Math.max(9, snapPercent - 3)}%`;
+      dotMLB.style.left = `${snapPercent - (3 * dir)}%`;
       dotMLB.style.top = `52%`;
     }
 
     if (playResult.concept === "QUICK_SLANTS") {
-      if (dotWR1) { dotWR1.style.left = `${snapPercent + 6}%`; dotWR1.style.top = `35%`; }
-      if (dotWR2) { dotWR2.style.left = `${snapPercent + 6}%`; dotWR2.style.top = `65%`; }
-      if (dotCB1) { dotCB1.style.left = `${snapPercent + 7}%`; dotCB1.style.top = `33%`; }
-      if (dotCB2) { dotCB2.style.left = `${snapPercent + 7}%`; dotCB2.style.top = `67%`; }
+      if (dotWR1) { dotWR1.style.left = `${snapPercent + (6 * dir)}%`; dotWR1.style.top = `35%`; }
+      if (dotWR2) { dotWR2.style.left = `${snapPercent + (6 * dir)}%`; dotWR2.style.top = `65%`; }
+      if (dotCB1) { dotCB1.style.left = `${snapPercent + (7 * dir)}%`; dotCB1.style.top = `33%`; }
+      if (dotCB2) { dotCB2.style.left = `${snapPercent + (7 * dir)}%`; dotCB2.style.top = `67%`; }
     } else if (playResult.concept === "FOUR_VERTS") {
-      if (dotWR1) { dotWR1.style.left = `${Math.min(91, snapPercent + 18)}%`; dotWR1.style.top = `15%`; }
-      if (dotWR2) { dotWR2.style.left = `${Math.min(91, snapPercent + 18)}%`; dotWR2.style.top = `85%`; }
-      if (dotCB1) { dotCB1.style.left = `${Math.min(91, snapPercent + 17)}%`; dotCB1.style.top = `17%`; }
-      if (dotCB2) { dotCB2.style.left = `${Math.min(91, snapPercent + 17)}%`; dotCB2.style.top = `83%`; }
+      if (dotWR1) { dotWR1.style.left = `${Math.max(5, Math.min(95, snapPercent + (18 * dir)))}%`; dotWR1.style.top = `15%`; }
+      if (dotWR2) { dotWR2.style.left = `${Math.max(5, Math.min(95, snapPercent + (18 * dir)))}%`; dotWR2.style.top = `85%`; }
+      if (dotCB1) { dotCB1.style.left = `${Math.max(5, Math.min(95, snapPercent + (17 * dir)))}%`; dotCB1.style.top = `17%`; }
+      if (dotCB2) { dotCB2.style.left = `${Math.max(5, Math.min(95, snapPercent + (17 * dir)))}%`; dotCB2.style.top = `83%`; }
     } else if (playResult.concept === "HB_DIVE" || playResult.concept === "OUTSIDE_SWEEP") {
       const isSweep = playResult.concept === "OUTSIDE_SWEEP";
       const targetY = isSweep ? 25 : 50;
@@ -1014,41 +1076,40 @@ function animatePlayOnField(eng, playResult, onComplete) {
         ballEl.style.left = `${endPercent}%`;
         ballEl.style.top = `${targetY}%`;
       }
-      // Defensive tackler pursues with clear 3.5% horizontal offset behind runner
+      // Defensive tackler pursues with clear horizontal offset behind runner
       if (dotMLB) {
-        dotMLB.style.left = `${Math.min(91, endPercent + 3.5)}%`;
+        dotMLB.style.left = `${Math.max(5, Math.min(95, endPercent + (3.5 * dir)))}%`;
         dotMLB.style.top = `${targetY + 4}%`;
       }
     } else if (playResult.playType === "PASS" && playResult.isSack) {
       if (dotRush && dotQB) {
         dotQB.style.left = `${endPercent}%`;
         dotQB.style.top = `50%`;
-        // Rusher stays offset to the right by 3%
-        dotRush.style.left = `${Math.min(91, endPercent + 3)}%`;
+        dotRush.style.left = `${Math.max(5, Math.min(95, endPercent + (3 * dir)))}%`;
         dotRush.style.top = `46%`;
       }
       if (ballEl) ballEl.style.left = `${endPercent}%`;
     }
 
-      // STEP 2: PASS RELEASE & TACKLE (fires after 650ms)
+    // STEP 2: PASS RELEASE & TACKLE (fires after 650ms)
     setTimeout(() => {
       if (playResult.playType === "PAT") {
         const isTwoPt = playResult.concept === "TWO_PT_CONVERSION";
         const converted = playResult.converted;
         
-        // Target is deep across the goal line (94% to 96%) if converted, or stopped at goal line (91%)
-        const finishX = converted ? 95 : 91;
+        // Target is deep across the target goal line (95% for Home, 5% for Away) if converted
+        const finishX = isHomePoss ? (converted ? 95 : 91) : (converted ? 5 : 9);
 
         if (isTwoPt) {
           // RB plunges across goal line
           if (dotRB) { dotRB.style.left = `${finishX}%`; dotRB.style.top = `50%`; }
           if (ballEl) { ballEl.style.left = `${finishX}%`; ballEl.style.top = `50%`; }
-          if (dotMLB) { dotMLB.style.left = `${Math.min(97, finishX + 2.5)}%`; dotMLB.style.top = `52%`; }
+          if (dotMLB) { dotMLB.style.left = `${Math.max(3, Math.min(97, finishX + (2.5 * dir)))}%`; dotMLB.style.top = `52%`; }
         } else {
           // 1-PT quick strike to WR1 in the endzone
           if (dotWR1) { dotWR1.style.left = `${finishX}%`; dotWR1.style.top = `35%`; }
           if (ballEl) { ballEl.style.left = `${finishX}%`; ballEl.style.top = `35%`; }
-          if (dotCB1) { dotCB1.style.left = `${Math.min(97, finishX + 2.5)}%`; dotCB1.style.top = `40%`; }
+          if (dotCB1) { dotCB1.style.left = `${Math.max(3, Math.min(97, finishX + (2.5 * dir)))}%`; dotCB1.style.top = `40%`; }
         }
       } else if (playResult.playType === "PASS" && !playResult.isSack) {
         const isDeep = playResult.concept === "FOUR_VERTS";
@@ -1066,16 +1127,16 @@ function animatePlayOnField(eng, playResult, onComplete) {
           dotWR1.style.top = `${recTargetY}%`;
         }
 
-        // Defensive back closes in but maintains a clean 3.5% trailing offset and slight vertical separation
+        // Defensive back closes in but maintains trailing offset behind receiver
         if (dotCB1) {
           if (playResult.isInterception) {
-            // On interception, DB undercuts in FRONT of the receiver by 2.5%
-            dotCB1.style.left = `${Math.max(9, endPercent - 2.5)}%`;
+            // On interception, DB undercuts in FRONT of the receiver
+            dotCB1.style.left = `${Math.max(5, Math.min(95, endPercent - (2.5 * dir)))}%`;
             dotCB1.style.top = `${recTargetY}%`;
-            if (ballEl) ballEl.style.left = `${Math.max(9, endPercent - 2.5)}%`;
+            if (ballEl) ballEl.style.left = `${Math.max(5, Math.min(95, endPercent - (2.5 * dir)))}%`;
           } else {
-            // On completion or tackle, defender trails BEHIND receiver by 3.5%
-            dotCB1.style.left = `${Math.min(91, endPercent + 3.5)}%`;
+            // On completion or tackle, defender trails BEHIND receiver
+            dotCB1.style.left = `${Math.max(5, Math.min(95, endPercent + (3.5 * dir)))}%`;
             dotCB1.style.top = `${recTargetY + 5}%`;
           }
         }
