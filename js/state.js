@@ -493,6 +493,25 @@ export class LeagueState {
     this.save();
   }
 
+  addCustomPlayer(player, destination = "roster") {
+    const userTeam = this.getUserTeam();
+    if (destination === "roster") {
+      userTeam.roster.push(player);
+      // If starters has room (< 5), auto-add
+      if (userTeam.starters.length < 5) {
+        userTeam.starters.push(player);
+      }
+      this.leagueNews.unshift(`SIGNING: ${userTeam.name} signed custom legend ${player.fullName} (${player.overall} OVR) to the active squad!`);
+    } else {
+      // Add to prospect pool and sort by overall
+      this.prospectPool.unshift(player);
+      this.prospectPool.sort((a, b) => b.overall - a.overall);
+      this.leagueNews.unshift(`SCOUTING BUZZ: Highly touted prospect ${player.fullName} (${player.overall} OVR) has arrived in the rookie draft pool!`);
+    }
+    this.save();
+    return player;
+  }
+
   save() {
     try {
       if (typeof localStorage !== "undefined") {

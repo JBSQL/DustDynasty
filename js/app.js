@@ -3,6 +3,7 @@
 import { LeagueState } from "./state.js";
 import { GameEngine, getFatiguedPlayer } from "./engine.js";
 import { autoSetStarters, evaluateTrade } from "./teams.js";
+import { createPlayer } from "./names.js";
 
 // Initialize or Load League State
 let league = LeagueState.load() || new LeagueState();
@@ -1658,9 +1659,158 @@ function openOffseasonModal() {
   };
 }
 
+// -------------------------------------------------------------
+// CREATE-A-KID WORKSHOP MODAL HANDLER
+// -------------------------------------------------------------
+function initCreatePlayerWorkshop() {
+  const modal = document.getElementById('create-player-modal');
+  const btnOpenRoster = document.getElementById('btn-open-create-player');
+  const btnOpenDraft = document.getElementById('btn-open-create-player-draft');
+  const btnClose = document.getElementById('btn-close-create-player');
+  const btnCancel = document.getElementById('btn-cancel-create-player');
+  const btnSubmit = document.getElementById('btn-submit-create-player');
+  const btnRandomize = document.getElementById('btn-randomize-stats');
+
+  if (!modal) return;
+
+  const sliderSpeed = document.getElementById('create-stat-speed');
+  const sliderThrowing = document.getElementById('create-stat-throwing');
+  const sliderHands = document.getElementById('create-stat-hands');
+  const sliderTackling = document.getElementById('create-stat-tackling');
+  const sliderEndurance = document.getElementById('create-stat-endurance');
+
+  const labelSpeed = document.getElementById('label-create-speed');
+  const labelThrowing = document.getElementById('label-create-throwing');
+  const labelHands = document.getElementById('label-create-hands');
+  const labelTackling = document.getElementById('label-create-tackling');
+  const labelEndurance = document.getElementById('label-create-endurance');
+  const ovrBadge = document.getElementById('create-ovr-badge');
+
+  function calculateAndRenderOVR() {
+    const spd = parseInt(sliderSpeed.value, 10);
+    const thr = parseInt(sliderThrowing.value, 10);
+    const hnd = parseInt(sliderHands.value, 10);
+    const tkl = parseInt(sliderTackling.value, 10);
+    const end = parseInt(sliderEndurance.value, 10);
+
+    labelSpeed.textContent = spd;
+    labelThrowing.textContent = thr;
+    labelHands.textContent = hnd;
+    labelTackling.textContent = tkl;
+    labelEndurance.textContent = end;
+
+    const ovr = Math.round((spd * 0.28) + (thr * 0.20) + (hnd * 0.20) + (tkl * 0.20) + (end * 0.12));
+    ovrBadge.textContent = ovr;
+
+    if (ovr >= 85) {
+      ovrBadge.className = "px-2.5 py-0.5 rounded text-sm font-black font-arcade bg-emerald-500/20 text-emerald-400 border border-emerald-500/40";
+    } else if (ovr >= 75) {
+      ovrBadge.className = "px-2.5 py-0.5 rounded text-sm font-black font-arcade bg-blue-500/20 text-blue-400 border border-blue-500/40";
+    } else if (ovr >= 65) {
+      ovrBadge.className = "px-2.5 py-0.5 rounded text-sm font-black font-arcade bg-amber-500/20 text-amber-400 border border-amber-500/40";
+    } else {
+      ovrBadge.className = "px-2.5 py-0.5 rounded text-sm font-black font-arcade bg-slate-800 text-slate-300 border border-slate-700";
+    }
+  }
+
+  [sliderSpeed, sliderThrowing, sliderHands, sliderTackling, sliderEndurance].forEach(sl => {
+    if (sl) sl.oninput = calculateAndRenderOVR;
+  });
+
+  if (btnRandomize) {
+    btnRandomize.onclick = () => {
+      sliderSpeed.value = Math.floor(Math.random() * 45) + 50;
+      sliderThrowing.value = Math.floor(Math.random() * 45) + 50;
+      sliderHands.value = Math.floor(Math.random() * 45) + 50;
+      sliderTackling.value = Math.floor(Math.random() * 45) + 50;
+      sliderEndurance.value = Math.floor(Math.random() * 45) + 50;
+      calculateAndRenderOVR();
+    };
+  }
+
+  const openModal = (defaultDest = "roster") => {
+    // Select radio destination
+    const radio = modal.querySelector(`input[name="create-destination"][value="${defaultDest}"]`);
+    if (radio) radio.checked = true;
+    calculateAndRenderOVR();
+    modal.classList.remove('hidden');
+  };
+
+  const closeModal = () => modal.classList.add('hidden');
+
+  if (btnOpenRoster) btnOpenRoster.onclick = () => openModal("roster");
+  if (btnOpenDraft) btnOpenDraft.onclick = () => openModal("draft");
+  if (btnClose) btnClose.onclick = closeModal;
+  if (btnCancel) btnCancel.onclick = closeModal;
+
+  if (btnSubmit) {
+    btnSubmit.onclick = () => {
+      const firstName = document.getElementById('create-first-name').value.trim();
+      const lastName = document.getElementById('create-last-name').value.trim();
+      const nickname = document.getElementById('create-nickname').value.trim();
+
+      if (!firstName || !lastName) {
+        alert("Please enter at least a First and Last Name for your player!");
+        return;
+      }
+
+      const age = parseInt(document.getElementById('create-age').value, 10);
+      const heightInches = parseInt(document.getElementById('create-height').value, 10);
+      const weight = parseInt(document.getElementById('create-weight').value, 10);
+
+      const feet = Math.floor(heightInches / 12);
+      const inches = heightInches % 12;
+
+      const speed = parseInt(sliderSpeed.value, 10);
+      const throwing = parseInt(sliderThrowing.value, 10);
+      const hands = parseInt(sliderHands.value, 10);
+      const tackling = parseInt(sliderTackling.value, 10);
+      const endurance = parseInt(sliderEndurance.value, 10);
+      const overall = Math.round((speed * 0.28) + (throwing * 0.20) + (hands * 0.20) + (tackling * 0.20) + (endurance * 0.12));
+
+      const selectedDestRadio = modal.querySelector('input[name="create-destination"]:checked');
+      const destination = selectedDestRadio ? selectedDestRadio.value : "roster";
+
+      // Instantiate custom player using engine overrides
+      const customPlayer = createPlayer({
+        firstName,
+        lastName,
+        nickname: nickname || null,
+        fullName: nickname ? `${firstName} "${nickname}" ${lastName}` : `${firstName} ${lastName}`,
+        shortName: nickname ? `"${nickname}" ${lastName}` : `${firstName.charAt(0)}. ${lastName}`,
+        age,
+        yearsRemaining: Math.max(1, 13 - age),
+        height: `${feet}'${inches}"`,
+        heightInches,
+        weight,
+        speed,
+        throwing,
+        hands,
+        tackling,
+        endurance,
+        overall,
+        archetype: "Custom Legend"
+      });
+
+      league.addCustomPlayer(customPlayer, destination);
+      closeModal();
+      refreshAllViews();
+
+      if (destination === "roster") {
+        alert(`🌟 ${customPlayer.fullName} (${customPlayer.overall} OVR) has signed with your squad!`);
+        switchTab('roster');
+      } else {
+        alert(`🎯 ${customPlayer.fullName} (${customPlayer.overall} OVR) has entered the rookie draft pool!`);
+        switchTab('draft');
+      }
+    };
+  }
+}
+
 // App Initialization
 window.addEventListener('DOMContentLoaded', () => {
   initNavigation();
+  initCreatePlayerWorkshop();
   refreshAllViews();
   // If draft is pending, default to draft tab
   if (!league.draftCompleted) {

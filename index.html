@@ -393,6 +393,9 @@
           <p class="text-xs text-slate-400">Select exactly 5 healthy kids to play both ways (offense & defense). No mid-game substitutions permitted.</p>
         </div>
         <div class="flex gap-2">
+          <button id="btn-open-create-player" class="bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 text-slate-950 text-xs font-black px-3.5 py-1.5 rounded-lg shadow transition flex items-center gap-1.5">
+            <span>✨</span> Create-A-Kid
+          </button>
           <button id="btn-auto-starters" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-700 transition">
             Auto-Set Best 5
           </button>
@@ -451,7 +454,10 @@
           <p class="text-xs text-slate-400 mt-1" id="draft-turn-label">On the Clock: Cul-de-sac Crushers</p>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2">
+          <button id="btn-open-create-player-draft" class="bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 text-slate-950 text-xs font-black px-3 py-2 rounded-lg shadow transition flex items-center gap-1.5">
+            <span>✨</span> Create Prospect
+          </button>
           <button id="btn-auto-draft-user" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-3 py-2 rounded-lg border border-slate-700 transition">
             Auto-Draft To My Pick
           </button>
@@ -674,6 +680,167 @@
         <span class="text-xs text-slate-400">Injuries have healed over the summer break!</span>
         <button id="btn-start-new-season-draft" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white text-xs font-bold px-5 py-2.5 rounded-lg shadow transition">
           Enter Rookie Draft Room →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Create-A-Kid Custom Player Workshop -->
+  <div id="create-player-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-5 animate-fade-in max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">✨</span>
+          <div>
+            <h3 class="text-lg font-black text-white font-arcade">CREATE-A-KID WORKSHOP</h3>
+            <p class="text-xs text-slate-400">Build a custom neighborhood legend with custom stats</p>
+          </div>
+        </div>
+        <button id="btn-close-create-player" class="text-slate-400 hover:text-white text-xl font-bold">&times;</button>
+      </div>
+
+      <!-- Identity Section -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div>
+          <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">First Name *</label>
+          <input type="text" id="create-first-name" placeholder="Pablo" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500 font-bold" />
+        </div>
+        <div>
+          <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Nickname (Optional)</label>
+          <input type="text" id="create-nickname" placeholder="Secret Weapon" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-amber-300 focus:outline-none focus:border-amber-500" />
+        </div>
+        <div>
+          <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Last Name *</label>
+          <input type="text" id="create-last-name" placeholder="Sanchez" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500 font-bold" />
+        </div>
+      </div>
+
+      <!-- Age & Physical Profile -->
+      <div class="grid grid-cols-3 gap-3 bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+        <div>
+          <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Age (8-12)</label>
+          <select id="create-age" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-purple-300 font-mono font-bold">
+            <option value="8">8 (5 Yrs Left)</option>
+            <option value="9" selected>9 (4 Yrs Left)</option>
+            <option value="10">10 (3 Yrs Left)</option>
+            <option value="11">11 (2 Yrs Left)</option>
+            <option value="12">12 (1 Yr Left)</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Height</label>
+          <select id="create-height" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200 font-mono">
+            <option value="50">4'2" (Pocket)</option>
+            <option value="54">4'6" (Small)</option>
+            <option value="58" selected>4'10" (Average)</option>
+            <option value="62">5'2" (Tall)</option>
+            <option value="66">5'6" (Giant)</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Weight</label>
+          <select id="create-weight" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200 font-mono">
+            <option value="72">72 lbs (Slim)</option>
+            <option value="88" selected>88 lbs (Medium)</option>
+            <option value="105">105 lbs (Sturdy)</option>
+            <option value="125">125 lbs (Heavy)</option>
+            <option value="145">145 lbs (Tank)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Stat Sliders & Live OVR Badge -->
+      <div class="space-y-3.5 bg-slate-950/80 p-4 rounded-xl border border-slate-800">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Player Ratings (25 - 99)</span>
+            <button id="btn-randomize-stats" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-amber-400 px-2 py-0.5 rounded font-mono border border-slate-700 transition">
+              🎲 Randomize
+            </button>
+          </div>
+          <!-- Live OVR -->
+          <div class="flex items-center gap-2">
+            <span class="text-[11px] font-bold text-slate-400">Calculated OVR:</span>
+            <span id="create-ovr-badge" class="px-2.5 py-0.5 rounded text-sm font-black font-arcade bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+              70
+            </span>
+          </div>
+        </div>
+
+        <!-- Speed -->
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs font-semibold">
+            <span class="text-amber-300">⚡ Speed (Separation, Rush burst, Corner speed)</span>
+            <span id="label-create-speed" class="font-mono text-white">75</span>
+          </div>
+          <input type="range" id="create-stat-speed" min="25" max="99" value="75" class="w-full accent-amber-500 cursor-pointer" />
+        </div>
+
+        <!-- Throwing -->
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs font-semibold">
+            <span class="text-blue-300">🎯 Throwing (QB Accuracy, Deep spirals, Reduced INTs)</span>
+            <span id="label-create-throwing" class="font-mono text-white">70</span>
+          </div>
+          <input type="range" id="create-stat-throwing" min="25" max="99" value="70" class="w-full accent-blue-500 cursor-pointer" />
+        </div>
+
+        <!-- Hands -->
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs font-semibold">
+            <span class="text-emerald-300">🤲 Hands (WR Catching, DB Interceptions, Reduced Fumbles)</span>
+            <span id="label-create-hands" class="font-mono text-white">72</span>
+          </div>
+          <input type="range" id="create-stat-hands" min="25" max="99" value="72" class="w-full accent-emerald-500 cursor-pointer" />
+        </div>
+
+        <!-- Tackling -->
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs font-semibold">
+            <span class="text-rose-300">💥 Tackling (Open-field stops, Edge rush sheds, Pass pro)</span>
+            <span id="label-create-tackling" class="font-mono text-white">68</span>
+          </div>
+          <input type="range" id="create-stat-tackling" min="25" max="99" value="68" class="w-full accent-rose-500 cursor-pointer" />
+        </div>
+
+        <!-- Endurance -->
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs font-semibold">
+            <span class="text-purple-300">🔋 Endurance (Fatigue resistance, Injury protection)</span>
+            <span id="label-create-endurance" class="font-mono text-white">80</span>
+          </div>
+          <input type="range" id="create-stat-endurance" min="25" max="99" value="80" class="w-full accent-purple-500 cursor-pointer" />
+        </div>
+      </div>
+
+      <!-- Destination Choice -->
+      <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 space-y-2">
+        <label class="text-[11px] font-bold text-slate-300 uppercase tracking-wider block">Where should this player go?</label>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+          <label class="flex items-start gap-2.5 p-2 rounded-lg bg-slate-900 border border-slate-700/80 cursor-pointer hover:border-amber-500 transition">
+            <input type="radio" name="create-destination" value="roster" checked class="accent-amber-500 mt-0.5" />
+            <div>
+              <div class="font-bold text-white">Sign Directly to My Roster</div>
+              <div class="text-[10px] text-slate-400">Adds to Cul-de-sac Crushers bench (or expands roster)</div>
+            </div>
+          </label>
+          <label class="flex items-start gap-2.5 p-2 rounded-lg bg-slate-900 border border-slate-700/80 cursor-pointer hover:border-purple-500 transition">
+            <input type="radio" name="create-destination" value="draft" class="accent-purple-500 mt-0.5" />
+            <div>
+              <div class="font-bold text-white">Add to Rookie Draft Pool</div>
+              <div class="text-[10px] text-slate-400">Available as a top draft prospect in the Draft Room</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="pt-3 border-t border-slate-800 flex justify-between items-center">
+        <button id="btn-cancel-create-player" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold px-4 py-2 rounded-lg transition">
+          Cancel
+        </button>
+        <button id="btn-submit-create-player" class="bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 hover:from-amber-400 text-slate-950 text-xs font-black px-6 py-2.5 rounded-lg shadow-lg transition flex items-center gap-1.5">
+          <span>✨</span> Create & Add Kid
         </button>
       </div>
     </div>
