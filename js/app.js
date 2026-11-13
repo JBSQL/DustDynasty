@@ -1684,52 +1684,131 @@ function initCreatePlayerWorkshop() {
   const labelHands = document.getElementById('label-create-hands');
   const labelTackling = document.getElementById('label-create-tackling');
   const labelEndurance = document.getElementById('label-create-endurance');
+
+  const ratingSpeed = document.getElementById('label-rating-speed');
+  const ratingThrowing = document.getElementById('label-rating-throwing');
+  const ratingHands = document.getElementById('label-rating-hands');
+  const ratingTackling = document.getElementById('label-rating-tackling');
+  const ratingEndurance = document.getElementById('label-rating-endurance');
+
+  const pointsLeftBadge = document.getElementById('create-points-left');
   const ovrBadge = document.getElementById('create-ovr-badge');
 
+  const TOTAL_BUDGET = 75;
+
+  // Convert skill points (5-30) into engine rating (25-99 scale)
+  function pointsToRating(pts) {
+    // 5 pts -> 35 rating, 15 pts -> 71 rating, 20 pts -> 87 rating, 25 pts -> 97 rating, 30 pts -> 99 rating
+    return Math.min(99, Math.round(23 + (pts * 3.2)));
+  }
+
+  function getSkillPoints() {
+    return {
+      spd: parseInt(sliderSpeed.value, 10) || 5,
+      thr: parseInt(sliderThrowing.value, 10) || 5,
+      hnd: parseInt(sliderHands.value, 10) || 5,
+      tkl: parseInt(sliderTackling.value, 10) || 5,
+      end: parseInt(sliderEndurance.value, 10) || 5
+    };
+  }
+
   function calculateAndRenderOVR() {
-    const spd = parseInt(sliderSpeed.value, 10);
-    const thr = parseInt(sliderThrowing.value, 10);
-    const hnd = parseInt(sliderHands.value, 10);
-    const tkl = parseInt(sliderTackling.value, 10);
-    const end = parseInt(sliderEndurance.value, 10);
+    const pts = getSkillPoints();
+    const usedPoints = pts.spd + pts.thr + pts.hnd + pts.tkl + pts.end;
+    const remaining = TOTAL_BUDGET - usedPoints;
 
-    labelSpeed.textContent = spd;
-    labelThrowing.textContent = thr;
-    labelHands.textContent = hnd;
-    labelTackling.textContent = tkl;
-    labelEndurance.textContent = end;
+    // Update labels
+    labelSpeed.textContent = pts.spd;
+    labelThrowing.textContent = pts.thr;
+    labelHands.textContent = pts.hnd;
+    labelTackling.textContent = pts.tkl;
+    labelEndurance.textContent = pts.end;
 
-    const ovr = Math.round((spd * 0.28) + (thr * 0.20) + (hnd * 0.20) + (tkl * 0.20) + (end * 0.12));
+    // Convert to ratings
+    const rSpd = pointsToRating(pts.spd);
+    const rThr = pointsToRating(pts.thr);
+    const rHnd = pointsToRating(pts.hnd);
+    const rTkl = pointsToRating(pts.tkl);
+    const rEnd = pointsToRating(pts.end);
+
+    if (ratingSpeed) ratingSpeed.textContent = rSpd;
+    if (ratingThrowing) ratingThrowing.textContent = rThr;
+    if (ratingHands) ratingHands.textContent = rHnd;
+    if (ratingTackling) ratingTackling.textContent = rTkl;
+    if (ratingEndurance) ratingEndurance.textContent = rEnd;
+
+    // Budget badge
+    if (pointsLeftBadge) {
+      pointsLeftBadge.textContent = `${remaining} / ${TOTAL_BUDGET}`;
+      if (remaining === 0) {
+        pointsLeftBadge.className = "px-2 py-0.5 rounded font-mono font-bold text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+      } else if (remaining > 0) {
+        pointsLeftBadge.className = "px-2 py-0.5 rounded font-mono font-bold text-xs bg-amber-500/20 text-amber-300 border border-amber-500/40";
+      } else {
+        pointsLeftBadge.className = "px-2 py-0.5 rounded font-mono font-bold text-xs bg-rose-500/20 text-rose-300 border border-rose-500/40";
+      }
+    }
+
+    const ovr = Math.round((rSpd * 0.28) + (rThr * 0.20) + (rHnd * 0.20) + (rTkl * 0.20) + (rEnd * 0.12));
     ovrBadge.textContent = ovr;
 
     if (ovr >= 85) {
-      ovrBadge.className = "px-2.5 py-0.5 rounded text-sm font-black font-arcade bg-emerald-500/20 text-emerald-400 border border-emerald-500/40";
+      ovrBadge.className = "px-2.5 py-0.5 rounded text-xs font-black font-arcade bg-emerald-500/20 text-emerald-400 border border-emerald-500/40";
     } else if (ovr >= 75) {
-      ovrBadge.className = "px-2.5 py-0.5 rounded text-sm font-black font-arcade bg-blue-500/20 text-blue-400 border border-blue-500/40";
+      ovrBadge.className = "px-2.5 py-0.5 rounded text-xs font-black font-arcade bg-blue-500/20 text-blue-400 border border-blue-500/40";
     } else if (ovr >= 65) {
-      ovrBadge.className = "px-2.5 py-0.5 rounded text-sm font-black font-arcade bg-amber-500/20 text-amber-400 border border-amber-500/40";
+      ovrBadge.className = "px-2.5 py-0.5 rounded text-xs font-black font-arcade bg-amber-500/20 text-amber-400 border border-amber-500/40";
     } else {
-      ovrBadge.className = "px-2.5 py-0.5 rounded text-sm font-black font-arcade bg-slate-800 text-slate-300 border border-slate-700";
+      ovrBadge.className = "px-2.5 py-0.5 rounded text-xs font-black font-arcade bg-slate-800 text-slate-300 border border-slate-700";
     }
+
+    return { remaining, rSpd, rThr, rHnd, rTkl, rEnd, ovr };
+  }
+
+  // Handle slider sliding with budget enforcement
+  function bindBudgetSlider(slider) {
+    let prevVal = parseInt(slider.value, 10);
+    slider.addEventListener('input', () => {
+      const currentVal = parseInt(slider.value, 10);
+      const pts = getSkillPoints();
+      const otherPoints = (pts.spd + pts.thr + pts.hnd + pts.tkl + pts.end) - currentVal;
+      const maxAllowed = TOTAL_BUDGET - otherPoints;
+
+      if (currentVal > maxAllowed) {
+        slider.value = Math.max(5, maxAllowed);
+      }
+      prevVal = parseInt(slider.value, 10);
+      calculateAndRenderOVR();
+    });
   }
 
   [sliderSpeed, sliderThrowing, sliderHands, sliderTackling, sliderEndurance].forEach(sl => {
-    if (sl) sl.oninput = calculateAndRenderOVR;
+    if (sl) bindBudgetSlider(sl);
   });
 
   if (btnRandomize) {
     btnRandomize.onclick = () => {
-      sliderSpeed.value = Math.floor(Math.random() * 45) + 50;
-      sliderThrowing.value = Math.floor(Math.random() * 45) + 50;
-      sliderHands.value = Math.floor(Math.random() * 45) + 50;
-      sliderTackling.value = Math.floor(Math.random() * 45) + 50;
-      sliderEndurance.value = Math.floor(Math.random() * 45) + 50;
+      // Pick an archetype flavor to weight the 75 points
+      const styles = [
+        { spd: 22, thr: 8, hnd: 20, tkl: 10, end: 15 }, // Speedy Deep Threat / Returner
+        { spd: 11, thr: 25, hnd: 18, tkl: 8, end: 13 },  // Pocket Gunslinger
+        { spd: 10, thr: 7, hnd: 12, tkl: 26, end: 20 },  // Enforcer / Linebacker
+        { spd: 18, thr: 10, hnd: 24, tkl: 11, end: 12 }, // Ball Hawk DB
+        { spd: 15, thr: 15, hnd: 15, tkl: 15, end: 15 }, // Mr. Balanced
+        { spd: 25, thr: 6, hnd: 14, tkl: 12, end: 18 }   // Scramble / Option Phenom
+      ];
+      const chosen = styles[Math.floor(Math.random() * styles.length)];
+
+      sliderSpeed.value = chosen.spd;
+      sliderThrowing.value = chosen.thr;
+      sliderHands.value = chosen.hnd;
+      sliderTackling.value = chosen.tkl;
+      sliderEndurance.value = chosen.end;
       calculateAndRenderOVR();
     };
   }
 
   const openModal = (defaultDest = "roster") => {
-    // Select radio destination
     const radio = modal.querySelector(`input[name="create-destination"][value="${defaultDest}"]`);
     if (radio) radio.checked = true;
     calculateAndRenderOVR();
@@ -1754,6 +1833,13 @@ function initCreatePlayerWorkshop() {
         return;
       }
 
+      const { remaining, rSpd, rThr, rHnd, rTkl, rEnd, ovr } = calculateAndRenderOVR();
+
+      if (remaining < 0) {
+        alert(`You have exceeded the 75 skill points budget by ${Math.abs(remaining)} points! Please adjust your sliders.`);
+        return;
+      }
+
       const age = parseInt(document.getElementById('create-age').value, 10);
       const heightInches = parseInt(document.getElementById('create-height').value, 10);
       const weight = parseInt(document.getElementById('create-weight').value, 10);
@@ -1761,17 +1847,10 @@ function initCreatePlayerWorkshop() {
       const feet = Math.floor(heightInches / 12);
       const inches = heightInches % 12;
 
-      const speed = parseInt(sliderSpeed.value, 10);
-      const throwing = parseInt(sliderThrowing.value, 10);
-      const hands = parseInt(sliderHands.value, 10);
-      const tackling = parseInt(sliderTackling.value, 10);
-      const endurance = parseInt(sliderEndurance.value, 10);
-      const overall = Math.round((speed * 0.28) + (throwing * 0.20) + (hands * 0.20) + (tackling * 0.20) + (endurance * 0.12));
-
       const selectedDestRadio = modal.querySelector('input[name="create-destination"]:checked');
       const destination = selectedDestRadio ? selectedDestRadio.value : "roster";
 
-      // Instantiate custom player using engine overrides
+      // Build custom player object using calculated engine ratings
       const customPlayer = createPlayer({
         firstName,
         lastName,
@@ -1783,12 +1862,12 @@ function initCreatePlayerWorkshop() {
         height: `${feet}'${inches}"`,
         heightInches,
         weight,
-        speed,
-        throwing,
-        hands,
-        tackling,
-        endurance,
-        overall,
+        speed: rSpd,
+        throwing: rThr,
+        hands: rHnd,
+        tackling: rTkl,
+        endurance: rEnd,
+        overall: ovr,
         archetype: "Custom Legend"
       });
 
